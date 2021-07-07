@@ -104,11 +104,11 @@ def add_args(parser):
     parser.add_argument('--gpu_num_per_server', type=int, default=4,
                         help='gpu_num_per_server')
 
-    parser.add_argument('--gpu_mapping_file', type=str, default="gpu_mapping.yaml",
+    parser.add_argument('--gpu_mapping_file', type=str,
                         help='the gpu utilization file for servers and clients. If there is no \
                         gpu_util_file, gpu will not be used.')
 
-    parser.add_argument('--gpu_mapping_key', type=str, default="mapping_default",
+    parser.add_argument('--gpu_mapping_key', type=str,
                         help='the key in gpu utilization file')
 
     parser.add_argument('--grpc_ipconfig_path', type=str, default="grpc_ipconfig.csv",
@@ -127,7 +127,7 @@ def load_data(args, dataset_name):
         train_data_local_num_dict, train_data_local_dict, test_data_local_dict, \
         class_num = load_partition_data_mnist(args.batch_size)
         """
-        For shallow NN or linear models, 
+        For shallow NN or linear models,
         we uniformly sample a fraction of clients each round (as the original FedAvg paper)
         """
         args.client_num_in_total = client_num

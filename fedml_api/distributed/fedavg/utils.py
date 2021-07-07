@@ -15,6 +15,24 @@ def transform_tensor_to_list(model_params):
         model_params[k] = model_params[k].detach().numpy().tolist()
     return model_params
 
+def transform_dict_list(model_params):
+    res = []
+    seq = []
+    for i,k in enumerate(model_params.keys()):
+        #print("k",k)
+        model_param = model_params[k].detach().numpy()
+        #print(model_param.shape)
+        res.append(np.reshape(model_param,(-1,1)))
+        #seq.append('res[%d]' % i)
+        #print(model_param.shape)
+        #res.append(model_params[k].detach().numpy())
+        if i==1:
+            model_params_concat = np.concatenate((res[0],res[1]),axis=0)
+        elif i>1:
+            model_params_concat = np.concatenate((model_params_concat,res[i]),axis=0)
+        #res.append(model_params[k].detach().numpy())
+    return model_params_concat#np.concatenate(,axis=0)
+
 
 def post_complete_message_to_sweep_process(args):
     pipe_path = "./tmp/fedml"

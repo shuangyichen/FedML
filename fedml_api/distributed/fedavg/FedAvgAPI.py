@@ -1,10 +1,11 @@
 from mpi4py import MPI
-
+from .GoWrappers import *
 from .FedAVGAggregator import FedAVGAggregator
 from .FedAVGTrainer import FedAVGTrainer
 from .FedAvgClientManager import FedAVGClientManager
 from .FedAvgServerManager import FedAVGServerManager
-
+from .FedAvgServerInit import FedAVGServerInit
+from .FedAvgClientInit import FedAVGClientInit
 from ...standalone.fedavg.my_model_trainer_classification import MyModelTrainer as MyModelTrainerCLS
 from ...standalone.fedavg.my_model_trainer_nwp import MyModelTrainer as MyModelTrainerNWP
 from ...standalone.fedavg.my_model_trainer_tag_prediction import MyModelTrainer as MyModelTrainerTAG
@@ -18,18 +19,19 @@ def FedML_init():
 
 
 def FedML_FedAvg_distributed(process_id, worker_number, device, comm, model, train_data_num, train_data_global, test_data_global,
-                             train_data_local_num_dict, train_data_local_dict, test_data_local_dict, args, model_trainer=None, preprocessed_sampling_lists=None):
+        train_data_local_num_dict, train_data_local_dict, test_data_local_dict, args,robust=False,log_degree=13, log_scale=40, resiliency=0, model_trainer=None, preprocessed_sampling_lists=None,server_address = b'0.0.0.0:8080'):
     if process_id == 0:
         init_server(args, device, comm, process_id, worker_number, model, train_data_num, train_data_global,
                     test_data_global, train_data_local_dict, test_data_local_dict, train_data_local_num_dict,
-                    model_trainer, preprocessed_sampling_lists)
+                    model_trainer,robust, log_degree, log_scale,server_address, preprocessed_sampling_lists)
     else:
         init_client(args, device, comm, process_id, worker_number, model, train_data_num, train_data_local_num_dict,
-                    train_data_local_dict, test_data_local_dict, model_trainer)
+                    train_data_local_dict, test_data_local_dict, robust,log_degree, log_scale, resiliency, server_address,model_trainer)
 
 
 def init_server(args, device, comm, rank, size, model, train_data_num, train_data_global, test_data_global,
-                train_data_local_dict, test_data_local_dict, train_data_local_num_dict, model_trainer, preprocessed_sampling_lists=None):
+                train_data_local_dict, test_data_local_dict, train_data_local_num_dict, model_trainer, robust, log_degree, log_scale, server_Address, preprocessed_sampling_lists=None):
+    print("rank",rank)
     if model_trainer is None:
         if args.dataset == "stackoverflow_lr":
             model_trainer = MyModelTrainerTAG(model)
@@ -37,28 +39,37 @@ def init_server(args, device, comm, rank, size, model, train_data_num, train_dat
             model_trainer = MyModelTrainerNWP(model)
         else: # default model trainer is for classification problem
             model_trainer = MyModelTrainerCLS(model)
+    #server_phase1(server_Address, num_peers, robust, log_degree, log_scale)
     model_trainer.set_id(-1)
 
     # aggregator
     worker_num = size - 1
+
+    backend = args.backend
+    #server_phase1(server_Address, worker_num, robust, log_degree, log_scale)
+    #server_init = FedAVGServerInit(worker_num,log_degree, log_scale,args,comm, rank, size,backend)
+    #server_init.run()
     aggregator = FedAVGAggregator(train_data_global, test_data_global, train_data_num,
                                   train_data_local_dict, test_data_local_dict, train_data_local_num_dict,
                                   worker_num, device, args, model_trainer)
 
+    params_count = 7850
+    server_init = FedAVGServerInit(worker_num,log_degree, log_scale,args, aggregator,params_count, comm, rank, size,backend)
+    server_init.run()
     # start the distributed training
-    backend = args.backend
+    #backend = args.backend
     if preprocessed_sampling_lists is None :
         server_manager = FedAVGServerManager(args, aggregator, comm, rank, size, backend)
     else:
         server_manager = FedAVGServerManager(args, aggregator, comm, rank, size, backend,
-            is_preprocessed=True, 
+            is_preprocessed=True,
             preprocessed_client_lists=preprocessed_sampling_lists)
     server_manager.send_init_msg()
     server_manager.run()
 
 
 def init_client(args, device, comm, process_id, size, model, train_data_num, train_data_local_num_dict,
-                train_data_local_dict, test_data_local_dict, model_trainer=None):
+                train_data_local_dict, test_data_local_dict, robust,log_degree, log_scale, resiliency,server_Address, model_trainer=None):
     client_index = process_id - 1
     if model_trainer is None:
         if args.dataset == "stackoverflow_lr":
@@ -67,9 +78,25 @@ def init_client(args, device, comm, process_id, size, model, train_data_num, tra
             model_trainer = MyModelTrainerNWP(model)
         else: # default model trainer is for classification problem
             model_trainer = MyModelTrainerCLS(model)
+    #pk, shamir_share, id = client_phase1(server_Address, robust, log_degree, log_scale, resiliency)
+    worker_num = size - 1
+    #client_init = FedAVGClientInit(worker_num,robust, log_degree, log_scale, resiliency,args,comm, process_id, size, args.backend)
+    #client_init.send_pk_to_server()
+    #client_init.run()
+    #client_init.send_pk_to_server()
+
+    #pk = client_init.pk
+    #shamir_share = client_init.SSstr
+
     model_trainer.set_id(client_index)
     backend = args.backend
     trainer = FedAVGTrainer(client_index, train_data_local_dict, train_data_local_num_dict, test_data_local_dict,
                             train_data_num, device, args, model_trainer)
-    client_manager = FedAVGClientManager(args, trainer, comm, process_id, size,backend)
+    params_count = 7850
+    client_init = FedAVGClientInit(trainer,worker_num,robust, log_degree, log_scale, resiliency,params_count, args,comm, process_id, size, args.backend)
+    client_init.send_pk_to_server()
+    client_init.run()
+
+
+    client_manager = FedAVGClientManager(args, trainer, pk,shamir_share, robust,log_degree, log_scale, resiliency,comm, process_id, size,backend)
     client_manager.run()

@@ -29,11 +29,18 @@ class FedAVGAggregator(object):
 
         self.worker_num = worker_num
         self.device = device
+        self.enc_model_list = [None]*self.worker_num
         self.model_dict = dict()
+        self.pcks_share_list = [None]*self.worker_num
         self.sample_num_dict = dict()
         self.flag_client_model_uploaded_dict = dict()
         for idx in range(self.worker_num):
             self.flag_client_model_uploaded_dict[idx] = False
+
+    def add_pcks_share(self,index, pcks_share):
+        self.pcks_share_list[index] = pcks_share.decode()
+        self.flag_client_model_uploaded_dict[index] = True
+
 
     def get_global_model_params(self):
         return self.trainer.get_model_params()
@@ -54,6 +61,12 @@ class FedAVGAggregator(object):
         for idx in range(self.worker_num):
             self.flag_client_model_uploaded_dict[idx] = False
         return True
+
+    def add_enc_model_params(self, index, model_params, sample_num):
+        # enc_model_list = [None]*self.worker_num
+        self.enc_model_list[index] = model_params.decode()
+        self.flag_client_model_uploaded_dict[index] = True
+        self.sample_num_dict[index] = sample_num
 
     def aggregate(self):
         start_time = time.time()
@@ -124,7 +137,7 @@ class FedAVGAggregator(object):
                 train_losses.append(copy.deepcopy(train_loss))
 
                 """
-                Note: CI environment is CPU-based computing. 
+                Note: CI environment is CPU-based computing.
                 The training speed for RNN training is to slow in this setting, so we only test a client to make sure there is no programming error.
                 """
                 if self.args.ci == 1:
@@ -147,7 +160,7 @@ class FedAVGAggregator(object):
                 metrics = self.trainer.test(self.test_global, self.device, self.args)
             else:
                 metrics = self.trainer.test(self.val_global, self.device, self.args)
-                
+
             test_tot_correct, test_num_sample, test_loss = metrics['test_correct'], metrics['test_total'], metrics[
                 'test_loss']
             test_tot_corrects.append(copy.deepcopy(test_tot_correct))
