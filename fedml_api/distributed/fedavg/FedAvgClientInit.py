@@ -14,7 +14,7 @@ except ImportError:
 from .message_define import MyMessage
 from .utils import transform_list_to_tensor, post_complete_message_to_sweep_process
 from .GoWrappers import *
-
+import numpy as np
 
 class FedAVGClientInit(ClientManager):
     def __init__(self,trainer,worker_num,robust,log_degree, log_scale, resiliency,params_count,args, comm, rank, size, backend="MPI"):
@@ -35,11 +35,28 @@ class FedAVGClientInit(ClientManager):
         self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_INIT_CONFIG,self.handle_message_init)
         self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_SEND_AGGR_ENCRYPTED_MODEL,self.handle_message_enc_aggregated_model_from_server)
         self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_SEND_DECRYPTION_INFO,self.handle_message_decryption_info_from_server)
-
+        self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_SYNC_MODEL_TO_CLIENT,
+                                              self.handle_message_receive_model_from_server)
 
     def run(self):
         super().run()
 
+    #def handle_message_receive_model_from_server(self):
+    def handle_message_receive_model_from_server(self, msg_params):
+        logging.info("handle_message_receive_model_from_server.")
+        model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
+        client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
+
+        if self.args.is_mobile == 1:
+            model_params = transform_list_to_tensor(model_params)
+
+        self.trainer.update_model(model_params)
+        self.trainer.update_dataset(int(client_index))
+        self.round_idx += 1
+        self.__train()
+        #if self.round_idx == self.num_rounds - 1:
+        #    post_complete_message_to_sweep_process(self.args)
+        #    self.finish()
 
     def handle_message_init(self, msg_params):
         global_model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
@@ -61,9 +78,10 @@ class FedAVGClientInit(ClientManager):
     def __train(self):
         logging.info("#######training########### round_id = %d" % self.round_idx)
         weights, local_sample_num = self.trainer.train(self.round_idx)
-        print(weights)
+#        weights = np.ones((10,10))
+        #print(weights)
         enc_weights = self.encrypt(weights.reshape(-1))
-        print("enc done")
+        #print("enc weights",enc_weights.decode()[0:20])
         self.send_model_to_server(0, enc_weights, local_sample_num)
 
     def handle_message_decryption_info_from_server(self,msg_params):
@@ -72,6 +90,7 @@ class FedAVGClientInit(ClientManager):
         if decryptionParticipation == 1:
             print("get decryption info")
             tpk = msg_params.get(MyMessage.MSG_ARG_KEY_TPK)
+            #print("TPK",tpk.decode()[0:20])
             PCKSShair = genPCKSShair(self.enc_aggregated_model,tpk,self.SSstr, decryptionCoefficients, self.params_count, self.robust, self.log_degree, self.log_scale)
             self.send_PCKS_shair_to_server(PCKSShair)
 

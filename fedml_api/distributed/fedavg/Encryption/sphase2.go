@@ -151,8 +151,8 @@ func decrypt(tsk_string string, pcksShareString string, encResultStr string,logD
     } else {
         numPieces = inputLength/packSize + 1
     }
-    
-    tsk, _ := ckks.NewKeyGenerator(params).GenKeyPair()
+    tsk := ckks.NewSecretKey(params)
+    //tsk, _ := ckks.NewKeyGenerator(params).GenKeyPair()
     //tsk_poly = ring
     //tsk.Set(polyCoeffsDecode(tsk_string))
     ringQP, _ := ring.NewRing(params.N(), append(params.Qi(), params.Pi()...))

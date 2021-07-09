@@ -53,6 +53,7 @@ def init_server(args, device, comm, rank, size, model, train_data_num, train_dat
                                   train_data_local_dict, test_data_local_dict, train_data_local_num_dict,
                                   worker_num, device, args, model_trainer)
 
+    #params_count = 100
     params_count = 7850
     server_init = FedAVGServerInit(worker_num,log_degree, log_scale,args, aggregator,params_count, comm, rank, size,backend)
     server_init.run()
@@ -64,8 +65,8 @@ def init_server(args, device, comm, rank, size, model, train_data_num, train_dat
         server_manager = FedAVGServerManager(args, aggregator, comm, rank, size, backend,
             is_preprocessed=True,
             preprocessed_client_lists=preprocessed_sampling_lists)
-    server_manager.send_init_msg()
-    server_manager.run()
+    #server_manager.send_init_msg()
+    #server_manager.run()
 
 
 def init_client(args, device, comm, process_id, size, model, train_data_num, train_data_local_num_dict,
@@ -92,11 +93,12 @@ def init_client(args, device, comm, process_id, size, model, train_data_num, tra
     backend = args.backend
     trainer = FedAVGTrainer(client_index, train_data_local_dict, train_data_local_num_dict, test_data_local_dict,
                             train_data_num, device, args, model_trainer)
+    #params_count = 100
     params_count = 7850
     client_init = FedAVGClientInit(trainer,worker_num,robust, log_degree, log_scale, resiliency,params_count, args,comm, process_id, size, args.backend)
     client_init.send_pk_to_server()
     client_init.run()
 
 
-    client_manager = FedAVGClientManager(args, trainer, pk,shamir_share, robust,log_degree, log_scale, resiliency,comm, process_id, size,backend)
-    client_manager.run()
+    #client_manager = FedAVGClientManager(args, trainer, pk,shamir_share, robust,log_degree, log_scale, resiliency,comm, process_id, size,backend)
+    #client_manager.run()

@@ -110,11 +110,11 @@ func genCollectiveKeyShair_not_robust(numPeers int,robust bool, logDegree uint64
     if k == 0 {
         k = 1
     }
-    fmt.Println("genCollectiveKeyShair_not_robust")
-    fmt.Println("numPeers",numPeers)
-    fmt.Println("logDegree",logDegree)
-    fmt.Println("resiliency",resiliency)
-    fmt.Println("scale",scale)
+    //fmt.Println("genCollectiveKeyShair_not_robust")
+    //fmt.Println("numPeers",numPeers)
+    //fmt.Println("logDegree",logDegree)
+    //fmt.Println("resiliency",resiliency)
+    //fmt.Println("scale",scale)
 
     moduli := &ckks.Moduli{Qi: []uint64{ringPrime}, Pi: []uint64{ringPrimeP}}
     //fmt.Println("client go log Degree",logDegree)  

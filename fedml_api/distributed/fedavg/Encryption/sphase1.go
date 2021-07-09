@@ -6,7 +6,7 @@ import (
 	//"fmt"
 	//"time"
 
-	"fmt"
+//	"fmt"
 	"github.com/ldsec/lattigo/v2/ckks"
 	"github.com/ldsec/lattigo/v2/dckks"
 	"github.com/ldsec/lattigo/v2/ring"
@@ -31,14 +31,14 @@ func genCollectivePK(cpkStr string,numPeers int, logDegree uint64, scale float64
 	var ringPrimeP uint64 = 0xfffffffffffc001
     //cpkStr = cpkStr[1:len(cpkStr)-1]
     //cpkgSharesStr := strings.Split(cpkStr, ",")
-    fmt.Println("genCollectivePK")
-	fmt.Println("numpeers:",numPeers)
-    fmt.Println("logDegree:",logDegree)
+    //fmt.Println("genCollectivePK")
+	//fmt.Println("numpeers:",numPeers)
+    //fmt.Println("logDegree:",logDegree)
     moduli := &ckks.Moduli{Qi: []uint64{ringPrime}, Pi: []uint64{ringPrimeP}}
     //logDegree = 13
 
     //fmt.Println("numpeers",numPeers) 
-    fmt.Println("scale",scale)   
+    //fmt.Println("scale",scale)   
     params, err := ckks.NewParametersFromModuli(logDegree, moduli)
     if err != nil {
         panic(err)

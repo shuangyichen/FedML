@@ -59,7 +59,7 @@ def decrypt(tsk,pcksShareString, encResultStr, logDegree, scale, inputLength, nu
     res = res.decode()
     res = str.split(res, " ")[0:-1]
     res = [float(res_elem) for res_elem in res]
-    print(res)
+    #print(res)
     return res
 
 def genPCKSShair(enc_aggr_model,TPK,shamir_share_str,decryptionCoefficient, inputLength, robust, logDegree, scale):
