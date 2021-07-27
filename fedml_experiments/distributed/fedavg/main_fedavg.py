@@ -11,6 +11,7 @@ import psutil
 import setproctitle
 import torch
 import wandb
+from torchsummary import summary
 from mpi4py import MPI
 
 # add the FedML root directory to the python path
@@ -33,7 +34,7 @@ from fedml_api.data_preprocessing.cifar10.data_loader import load_partition_data
 from fedml_api.data_preprocessing.cifar100.data_loader import load_partition_data_cifar100
 from fedml_api.data_preprocessing.cinic10.data_loader import load_partition_data_cinic10
 
-from fedml_api.model.cv.cnn import CNN_DropOut
+from fedml_api.model.cv.cnn import CNN_DropOut, CNN_Test
 from fedml_api.model.cv.resnet_gn import resnet18
 from fedml_api.model.cv.mobilenet import mobilenet
 from fedml_api.model.cv.resnet import resnet56
@@ -118,6 +119,7 @@ def add_args(parser):
                         help='CI')
     args = parser.parse_args()
     return args
+
 
 
 def load_data(args, dataset_name):
@@ -229,6 +231,8 @@ def load_data(args, dataset_name):
     return dataset
 
 
+    #return sum(p.numel() for p in model.parameters())
+
 def create_model(args, model_name, output_dim):
     logging.info("create_model. model_name = %s, output_dim = %s" % (model_name, output_dim))
     model = None
@@ -257,6 +261,8 @@ def create_model(args, model_name, output_dim):
         model = resnet56(class_num=output_dim)
     elif model_name == "mobilenet":
         model = mobilenet(class_num=output_dim)
+    elif model_name == "cnn_test":
+        model = CNN_Test(False)
     # TODO
     elif model_name == 'mobilenet_v3':
         '''model_mode \in {LARGE: 5.15M, SMALL: 2.94M}'''
@@ -264,7 +270,10 @@ def create_model(args, model_name, output_dim):
     elif model_name == 'efficientnet':
         model = EfficientNet()
 
-    return model
+    model_summary= summary(model, (1,28*28))
+
+    print("param num ",model_summary.item())
+    return model, model_summary.item()
 
 
 if __name__ == "__main__":
@@ -321,18 +330,20 @@ if __name__ == "__main__":
 
     # load data
     dataset = load_data(args, args.dataset)
+
     [train_data_num, test_data_num, train_data_global, test_data_global,
      train_data_local_num_dict, train_data_local_dict, test_data_local_dict, class_num] = dataset
 
     # create model.
     # Note if the model is DNN (e.g., ResNet), the training will be very slow.
     # In this case, please use our FedML distributed version (./fedml_experiments/distributed_fedavg)
-    model = create_model(args, model_name=args.model, output_dim=dataset[7])
+    model, param_num = create_model(args, model_name=args.model, output_dim=dataset[7])
+
 
     # try:
         # start "federated averaging (FedAvg)"
     FedML_FedAvg_distributed(process_id, worker_number, device, comm,
-                             model, train_data_num, train_data_global, test_data_global,
+                             model, param_num, train_data_num, train_data_global, test_data_global,
                              train_data_local_num_dict, train_data_local_dict, test_data_local_dict, args)
     # except Exception as e:
     #     print(e)

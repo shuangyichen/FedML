@@ -1,4 +1,4 @@
-package main                                                                                                                                                                       
+package main
 
 import (
     "C"
@@ -54,7 +54,7 @@ func encryptMsg(inputs []float64, cpkString string, shamirShareString string, ro
     // creating inputs
     numPieces := 0
     inputLength := len(inputs)
-    fmt.Println("input length",inputLength)
+    //fmt.Println("input length",inputLength)
     packSize := 2 * int(params.Slots())
     if inputLength%packSize == 0 {
         numPieces = inputLength / packSize
@@ -138,7 +138,7 @@ func genPCKSShare(enc_aggr_model string, TPK string,shamirShareString string, de
 	}
     //fmt.Println("genPCKSShair")
     //fmt.Println("inputLength",inputLength)
-    //fmt.Println("dc",decryptionCoefficient)
+   // fmt.Println("dc",decryptionCoefficient)
     //fmt.Println("logDegree",logDegree)
     //fmt.Println("scale",scale)
     //inputLength = 7850

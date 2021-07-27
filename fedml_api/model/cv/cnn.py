@@ -126,7 +126,9 @@ class CNN_DropOut(torch.nn.Module):
         #self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x):
+        #print(x.shape)
         x = torch.unsqueeze(x, 1)
+        #print(x.shape)
         x = self.conv2d_1(x)
         x = self.relu(x)
         x = self.conv2d_2(x)
@@ -140,3 +142,45 @@ class CNN_DropOut(torch.nn.Module):
         x = self.linear_2(x)
         #x = self.softmax(self.linear_2(x))
         return x
+
+
+class CNN_Test(torch.nn.Module):
+    def __init__(self, only_digits=True):
+        super(CNN_Test, self).__init__()
+        self.only_digits = only_digits
+        self.conv2d_1 = torch.nn.Conv2d(1, 32, kernel_size=3, padding=1)
+        self.max_pooling = nn.MaxPool2d(2, stride=2)
+        self.conv2d_2 = torch.nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.flatten = nn.Flatten()
+        self.conv2d_3 = torch.nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.conv2d_4 = torch.nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.conv2d_5 = torch.nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.conv2d_6 = torch.nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.linear_1 = nn.Linear(288, 512)
+        self.linear_2 = nn.Linear(512, 10)
+        self.relu = nn.ReLU()
+        #self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, x):
+        #x = torch.unsqueeze(x, 1)
+        #print(x.shape)
+        x = torch.reshape(x,(-1,1,28,28))
+        #print(x.shape)
+        x = self.conv2d_1(x)
+        x = self.relu(x)
+        x = self.conv2d_2(x)
+        x = self.max_pooling(x)
+        x = self.conv2d_3(x)
+        x = self.relu(x)
+        x = self.conv2d_4(x)
+        x = self.max_pooling(x)
+        x = self.conv2d_5(x)
+        x = self.conv2d_6(x)
+        x = self.max_pooling(x)
+        x = self.flatten(x)
+        x = self.relu(self.linear_1(x))
+        x = self.linear_2(x)
+        #x = self.softmax(self.linear_2(x))
+        return x
+
+

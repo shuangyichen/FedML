@@ -2,6 +2,7 @@ class MyMessage(object):
     """
         message type definition
     """
+
     # server to client
     MSG_TYPE_S2C_INIT_CONFIG = 1
     MSG_TYPE_S2C_SYNC_MODEL_TO_CLIENT = 2
@@ -17,6 +18,9 @@ class MyMessage(object):
     MSG_TYPE_C2S_PHASE1_DONE = 10
     MSG_TYPE_C2S_SEND_LIVENESS_STATUS = 11
     MSG_TYPE_C2S_PCKS_SHAIR = 12
+    # client to client
+    MSG_TYPE_C2C_SEND_PROCESSED_SS = 13
+
 
     MSG_ARG_KEY_TYPE = "msg_type"
     MSG_ARG_KEY_SENDER = "sender"

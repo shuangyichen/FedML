@@ -60,10 +60,10 @@ class BasicConv2d(nn.Module):
 class MobileNet(nn.Module):
     """
     Args:
-        width multipler: The role of the width multiplier α is to thin 
-                         a network uniformly at each layer. For a given 
-                         layer and width multiplier α, the number of 
-                         input channels M becomes αM and the number of 
+        width multipler: The role of the width multiplier α is to thin
+                         a network uniformly at each layer. For a given
+                         layer and width multiplier α, the number of
+                         input channels M becomes αM and the number of
                          output channels N becomes αN.
     """
 

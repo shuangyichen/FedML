@@ -11,11 +11,34 @@ import (
     //"math/rand"
     //"net"
     //"os"
-    //"strconv"
+    "strconv"
     "strings"
     //"time"
 )
 
+//export genDecryptionCoefficients
+func genDecryptionCoefficients(clientsParticipated string)(res_Cstring *C.char){
+    var ringPrime uint64 = 0x10000000001d0001
+    clientsParticipated_list := strings.Split(clientsParticipated,",")
+    evalPointsParticipated := make([]uint64, len(clientsParticipated_list))
+    for idx:= range clientsParticipated_list{
+        evalPointsParticipated[idx],_ = strconv.ParseUint(clientsParticipated_list[idx], 10, 64)
+    }
+		tmpCoefficients := GenerateVandermondeInverse(evalPointsParticipated, ringPrime)
+		//for peerIdx := range clientIPs {
+    res := ""
+    for idx:= range clientsParticipated_list{
+		res += clientsParticipated_list[idx]
+        res += ":"
+        res += strconv.FormatUint(tmpCoefficients[idx],10)
+        res += ","
+        //decryptionCoefficients[peerIdx] = tmpCoefficients[tmpCntr]
+	}
+    res += "\n"
+    res_Cstring = C.CString(res)
+    return
+
+}
 
 
 
@@ -59,6 +82,8 @@ func aggregateEncrypted(encInputsString string, numPeers int, logDegree uint64, 
         crtClient := encClientInputs[encCounter]
         piecesArr := strings.Split(crtClient, ":")
         piecesArr = piecesArr[0 : len(piecesArr)-1]
+        //fmt.Println("piecesArr",len(piecesArr))
+        //fmt.Println("numPieces",numPieces)
         if len(piecesArr) != numPieces {
             fmt.Println("Encryted files received incorrectly")
         }
@@ -98,9 +123,7 @@ func aggregateEncrypted(encInputsString string, numPeers int, logDegree uint64, 
 //export genTPK
 func genTPK(logDegree uint64, scale float64)(res *C.char, tsk_Cstring *C.char){
     var ringPrime uint64 = 0x10000000001d0001
-	var ringPrimeP uint64 = 0xfffffffffffc001
-    //fmt.Println("genTPK")
-    //fmt.Println("logDegree",logDegree) 
+	var ringPrimeP uint64 = 0xfffffffffffc001 
     moduli := &ckks.Moduli{Qi: []uint64{ringPrime}, Pi: []uint64{ringPrimeP}}
 	params, err := ckks.NewParametersFromModuli(logDegree, moduli)
     if err != nil {
@@ -175,10 +198,9 @@ func decrypt(tsk_string string, pcksShareString string, encResultStr string,logD
             ctContents[ctContentCounter].SetCoefficients(polyCoeffsDecode(polyCoeffsStringArr[ctContentCounter]))
         }
         encResult[pieceCounter] = ckks.NewCiphertext(params, 1, params.MaxLevel(), params.Scale())
-        encResult[pieceCounter].SetValue(ctContents)                                                                                                                               
-
+        encResult[pieceCounter].SetValue(ctContents)
     }
- 
+
     pcksShares := make([][]dckks.PCKSShare, numPeers)
     pcksCombined := make([]dckks.PCKSShare, numPieces)
 	for i := range pcksCombined {
