@@ -17,7 +17,7 @@ class MyMessage(object):
     MSG_TYPE_C2S_SEND_CPK_TO_SERVER = 8
     MSG_TYPE_C2S_PHASE1_DONE = 10
     MSG_TYPE_C2S_SEND_LIVENESS_STATUS = 11
-    MSG_TYPE_C2S_PCKS_SHAIR = 12
+    MSG_TYPE_C2S_PCKS_SHARE = 12
     # client to client
     MSG_TYPE_C2C_SEND_PROCESSED_SS = 13
 
@@ -41,7 +41,7 @@ class MyMessage(object):
     MSG_ARG_KEY_TPK = "target public key"
     MSG_ARG_KEY_DECRYPTION_PARTICIPATION = "decryption participation"
     MSG_ARG_KEY_DECRYPTION_COEFFI = "decryption coeff"
-    MSG_ARG_KEY_PCKS_SHAIR = "pcks shair"
+    MSG_ARG_KEY_PCKS_SHARE = "pcks shair"
 
 
     MSG_ARG_KEY_TRAIN_CORRECT = "train_correct"

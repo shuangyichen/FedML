@@ -65,7 +65,7 @@ func genShamirShareString_robust(shamirShare string, numPeers int, logDegree uin
 
 
 //export genShamirShares
-func genShamirShares(numPeers int,robust bool, logDegree uint64, scale float64, resiliency float64)(res *C.char, collectiveKeyShair_CString *C.char){
+func genShamirShares(numPeers int, logDegree uint64, scale float64, resiliency float64)(res *C.char, collectiveKeyShair_CString *C.char){
 	var ringPrime uint64 = 0x10000000001d0001
 	var ringPrimeP uint64 = 0xfffffffffffc001
     k := int(float64(numPeers) * (1 - resiliency))
@@ -138,8 +138,8 @@ func genShamirShares(numPeers int,robust bool, logDegree uint64, scale float64, 
 	return
 }
 
-//export genCollectiveKeyShair_not_robust
-func genCollectiveKeyShair_not_robust(numPeers int,robust bool, logDegree uint64, scale float64, resiliency float64)(res *C.char, shamirShareString *C.char){
+//export genCollectiveKeyShare_not_robust
+func genCollectiveKeyShare_not_robust(numPeers int, logDegree uint64, scale float64, resiliency float64)(res *C.char, shamirShareString *C.char){
     var ringPrime uint64 = 0x10000000001d0001
     var ringPrimeP uint64 = 0xfffffffffffc001
     k := int(float64(numPeers) * (1 - resiliency))

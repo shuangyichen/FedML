@@ -28,7 +28,7 @@ class GoSliceList(Structure):
     _fields_ = [("data", POINTER(c_char_p)), ("len", c_longlong), ("cap", c_longlong)]
 
 
-class genCollectiveKeyShair_not_robust_return(Structure):
+class genCollectiveKeyShare_not_robust_return(Structure):
     _fields_ = [("r0", c_char_p), ("r1", c_char_p)]
 
 class genTPK_return(Structure):
@@ -41,10 +41,10 @@ lib.encryptMsg.argtypes = [GoSlice, GoString, GoString, c_ubyte, c_ulonglong, c_
 lib.encryptMsg.restype = c_char_p
 lib.aggregateEncrypted.argtypes = [GoString,c_ubyte,c_ulonglong, c_double, c_longlong]
 lib.aggregateEncrypted.restype = c_char_p
-lib.genShamirShares.argtypes = [c_longlong,c_ubyte, c_ulonglong, c_double, c_double]
+lib.genShamirShares.argtypes = [c_longlong, c_ulonglong, c_double, c_double]
 lib.genShamirShares.restype = genShamirShares_return
-lib.genCollectiveKeyShair_not_robust.argtypes = [c_longlong,c_ubyte, c_ulonglong, c_double, c_double]
-lib.genCollectiveKeyShair_not_robust.restype = genCollectiveKeyShair_not_robust_return
+lib.genCollectiveKeyShare_not_robust.argtypes = [c_longlong, c_ulonglong, c_double, c_double]
+lib.genCollectiveKeyShare_not_robust.restype = genCollectiveKeyShare_not_robust_return
 lib.genCollectivePK.argtypes = [GoString,c_ubyte, c_ulonglong, c_double]
 lib.genCollectivePK.restype = c_char_p
 lib.genTPK.argtypes = [c_ulonglong, c_double]
@@ -77,7 +77,7 @@ def decrypt(tsk,pcksShareString, encResultStr, logDegree, scale, inputLength, nu
     #print(res)
     return res
 
-def genPCKSShair(enc_aggr_model,TPK,shamir_share_str,decryptionCoefficient, inputLength, robust, logDegree, scale):
+def genPCKSShare(enc_aggr_model,TPK,shamir_share_str,decryptionCoefficient, inputLength, robust, logDegree, scale):
     PCKSShare = lib.genPCKSShare(GoString(enc_aggr_model,len(enc_aggr_model)),GoString(TPK,len(TPK)),GoString(shamir_share_str,len(shamir_share_str)),decryptionCoefficient,inputLength,robust,logDegree,2.**scale)
 
     return PCKSShare
@@ -102,14 +102,14 @@ def aggregateEncrypted(enc_model_list,worker_num,log_degree,log_scale,input_leng
 
 
 
-def genShamirShares(worker_num,robust, log_degree, log_scale,resilliency):
+def genShamirShares(worker_num, log_degree, log_scale,resilliency):
 
-    res = lib.genShamirShares(worker_num,robust, log_degree,2.**log_scale,resilliency)
+    res = lib.genShamirShares(worker_num, log_degree,2.**log_scale,resilliency)
     return res.r0, res.r1
 
-def genCollectiveKeyShair_not_robust(worker_num,robust, log_degree, log_scale,resilliency):
+def genCollectiveKeyShair_not_robust(worker_num, log_degree, log_scale,resilliency):
 
-    out = lib.genCollectiveKeyShair_not_robust(worker_num,robust, log_degree,2.**log_scale,resilliency)
+    out = lib.genCollectiveKeyShare_not_robust(worker_num, log_degree,2.**log_scale,resilliency)
     return out.r0, out.r1
 def genCollectivePK(CPK, worker_num,log_degree, log_scale):
     CPK = CPK.encode()

@@ -69,12 +69,12 @@ class FedAVGServerManager(ServerManager):
         self.register_message_receive_handler(MyMessage.MSG_TYPE_C2S_PHASE1_DONE,self.handle_message_phase1_flag_from_client)
         self.register_message_receive_handler(MyMessage.MSG_TYPE_C2S_SEND_ENC_MODEL_TO_SERVER,self.handle_message_receive_enc_model_from_client)
         self.register_message_receive_handler(MyMessage.MSG_TYPE_C2S_SEND_LIVENESS_STATUS,self.handle_message_receive_liveness_status_from_client)
-        self.register_message_receive_handler(MyMessage.MSG_TYPE_C2S_PCKS_SHAIR,self.handle_message_receive_pcks_shair)
+        self.register_message_receive_handler(MyMessage.MSG_TYPE_C2S_PCKS_SHARE,self.handle_message_receive_pcks_share)
 
-    def handle_message_receive_pcks_shair(self,msg_params):
+    def handle_message_receive_pcks_share(self,msg_params):
         sender_id = msg_params.get(MyMessage.MSG_ARG_KEY_SENDER)
         #print("receive pcks shair from client",sender_id)
-        pcks_share = msg_params.get(MyMessage.MSG_ARG_KEY_PCKS_SHAIR)
+        pcks_share = msg_params.get(MyMessage.MSG_ARG_KEY_PCKS_SHARE)
         self.aggregator.add_pcks_share(sender_id-1, pcks_share)
         b_all_received = self.aggregator.check_whether_all_receive()
         if b_all_received:

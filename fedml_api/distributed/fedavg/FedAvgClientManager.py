@@ -119,8 +119,8 @@ class FedAVGClientManager(ClientManager):
         decryptionCoefficients = msg_params.get(MyMessage.MSG_ARG_KEY_DECRYPTION_COEFFI)
         if decryptionParticipation == 1:
             tpk = msg_params.get(MyMessage.MSG_ARG_KEY_TPK)
-            PCKSShair = genPCKSShair(self.enc_aggregated_model,tpk,self.SSstr, decryptionCoefficients, self.params_count, self.robust, self.log_degree, self.log_scale)
-            self.send_PCKS_shair_to_server(PCKSShair)
+            PCKSShare = genPCKSShare(self.enc_aggregated_model,tpk,self.SSstr, decryptionCoefficients, self.params_count, self.robust, self.log_degree, self.log_scale)
+            self.send_PCKS_share_to_server(PCKSShare)
 
 
     def handle_message_public_key_from_server(self,msg_params):
@@ -136,9 +136,9 @@ class FedAVGClientManager(ClientManager):
 
 
 
-    def send_PCKS_shair_to_server(self,PCKS_shair):
-        message = Message(MyMessage.MSG_TYPE_C2S_PCKS_SHAIR, self.get_sender_id(), 0)
-        message.add_params(MyMessage.MSG_ARG_KEY_PCKS_SHAIR, PCKS_shair)
+    def send_PCKS_share_to_server(self,PCKS_shair):
+        message = Message(MyMessage.MSG_TYPE_C2S_PCKS_SHARE, self.get_sender_id(), 0)
+        message.add_params(MyMessage.MSG_ARG_KEY_PCKS_SHARE, PCKS_shair)
         self.send_message(message)
 
 
@@ -156,7 +156,7 @@ class FedAVGClientManager(ClientManager):
 
 
     def send_SS(self):
-        ShamirShares, self.CPK = genShamirShares(self.worker_num,self.robust,self.log_degree,self.log_scale, self.resiliency)
+        ShamirShares, self.CPK = genShamirShares(self.worker_num,self.log_degree,self.log_scale, self.resiliency)
         ShamirShares = ShamirShares.decode()
         sharesArr = ShamirShares.split(':')
         assert len(sharesArr)-1==self.worker_num
@@ -173,7 +173,7 @@ class FedAVGClientManager(ClientManager):
 
     def send_pk_to_server(self):
 
-        CPK, self.SSstr= genCollectiveKeyShair_not_robust(self.worker_num,self.robust,self.log_degree,self.log_scale, self.resiliency)
+        CPK, self.SSstr= genCollectiveKeyShare_not_robust(self.worker_num,self.log_degree,self.log_scale, self.resiliency)
         self.send_message_CPK_to_server(0,CPK)
 
 
