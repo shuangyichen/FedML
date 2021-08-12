@@ -107,7 +107,7 @@ def genShamirShares(worker_num, log_degree, log_scale,resilliency):
     res = lib.genShamirShares(worker_num, log_degree,2.**log_scale,resilliency)
     return res.r0, res.r1
 
-def genCollectiveKeyShair_not_robust(worker_num, log_degree, log_scale,resilliency):
+def genCollectiveKeyShare_not_robust(worker_num, log_degree, log_scale,resilliency):
 
     out = lib.genCollectiveKeyShare_not_robust(worker_num, log_degree,2.**log_scale,resilliency)
     return out.r0, out.r1
