@@ -1,4 +1,4 @@
-#!/usr/bin/env bash                                                                                                                                                                  
+#!/usr/bin/env bash
 
 CLIENT_NUM=$1
 WORKER_NUM=$2
@@ -17,9 +17,9 @@ ROBUST=${13}
 PROCESS_NUM=`expr $WORKER_NUM + 1`
 echo $PROCESS_NUM
 
-#hostname > mpi_host_file
+hostname > mpi_host_file
 
-mpirun -np $PROCESS_NUM -hostfile ./mpi_host_file python3 ./main_fedavg.py \
+mpirun -np $PROCESS_NUM python3 ./main_fedavg.py \
   --model $MODEL \
   --dataset $DATASET \
   --data_dir $DATA_DIR \
@@ -33,4 +33,3 @@ mpirun -np $PROCESS_NUM -hostfile ./mpi_host_file python3 ./main_fedavg.py \
   --lr $LR \
   --ci $CI \
   --robust $ROBUST
-~                   
