@@ -1,4 +1,4 @@
-#!/bin/bash
+#/bin/bash
 set -ex
 
 # install pyflakes to do code error checking
@@ -25,8 +25,11 @@ conda activate fedml
 conda install pytorch torchvision torchaudio cpuonly -c pytorch
 
 # Install MPI
-conda install -c anaconda mpi4py
-
+#conda install -c anaconda mpi4py
+conda install -c conda-forge gcc_linux-64
+conda install -c conda-forge gxx_linux-64
+conda install -c conda-forge gfortran_linux-64
+conda install -c conda-forge openmpi
 # Install Wandb
 pip install --upgrade wandb
 
@@ -37,7 +40,7 @@ conda install h5py
 conda install setproctitle
 conda install networkx
 pip install -r requirements.txt
-
+pip install mpi4py
 # install the dataset
 # 1. MNIST
 cd ./data/MNIST
