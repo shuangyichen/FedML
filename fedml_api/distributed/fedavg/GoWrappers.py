@@ -1,5 +1,5 @@
 from ctypes import *
-
+import time
 # loading the shared libraries
 lib = CDLL("./../../../fedml_api/distributed/fedavg/Encryption/func.so")
 
@@ -69,8 +69,10 @@ def genShamirShareString_robust(shamirShare, numPeers, logDegree, scale):
     return res
 
 def decrypt(tsk,pcksShareString, encResultStr, logDegree, scale, inputLength, numPeers):
+    init = time.time()
     pcksShareString = pcksShareString.encode()
     res = lib.decrypt(GoString(tsk,len(tsk)),GoString(pcksShareString,len(pcksShareString)), GoString(encResultStr,len(encResultStr)), logDegree, 2.**scale, inputLength, numPeers)
+    print("Decryption time", time.time()-init)
     res = res.decode()
     res = str.split(res, " ")[0:-1]
     res = [float(res_elem) for res_elem in res]
@@ -89,7 +91,9 @@ def genTPK(log_degree,log_scale):
 
 def encrypt(inputs,public_key, shamir_share,robust, log_degree, log_scale, resiliency):
     cInput = convertToGoSlice(inputs)
+    init = time.time()
     encMsg = lib.encryptMsg(cInput,GoString(public_key,len(public_key)),GoString(shamir_share,len(shamir_share)),robust, log_degree, 2.**log_scale, resiliency)
+    print("Encryption time",  time.time()-init)
     return encMsg
 
 

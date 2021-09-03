@@ -15,7 +15,7 @@ from .message_define import MyMessage
 from .utils import transform_list_to_tensor, post_complete_message_to_sweep_process
 from .GoWrappers import *
 import numpy as np
-
+import time
 class FedAVGClientManager(ClientManager):
     def __init__(self,trainer,worker_num,robust,log_degree, log_scale, resiliency,params_count,args, comm, rank, size, backend="MPI"):
         super().__init__(args, comm, rank, size, backend)
@@ -124,6 +124,7 @@ class FedAVGClientManager(ClientManager):
 
 
     def handle_message_public_key_from_server(self,msg_params):
+        print("Setup Phase time", time.time() - self.init)
         self.pk = msg_params.get(MyMessage.MSG_ARG_KEY_PUBLIC_KEY)
         self.send_message_phase1_done_to_server()
 
@@ -156,6 +157,7 @@ class FedAVGClientManager(ClientManager):
 
 
     def send_SS(self):
+        self.init = time.time()
         ShamirShares, self.CPK = genShamirShares(self.worker_num,self.log_degree,self.log_scale, self.resiliency)
         ShamirShares = ShamirShares.decode()
         sharesArr = ShamirShares.split(':')
@@ -172,7 +174,7 @@ class FedAVGClientManager(ClientManager):
 
 
     def send_pk_to_server(self):
-
+        self.init = time.time()
         CPK, self.SSstr= genCollectiveKeyShare_not_robust(self.worker_num,self.log_degree,self.log_scale, self.resiliency)
         self.send_message_CPK_to_server(0,CPK)
 

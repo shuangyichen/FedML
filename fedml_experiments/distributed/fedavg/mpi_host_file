@@ -1,1 +1,4 @@
-master
+client4 slots=1
+client3 slots=1  
+client0 slots=1
+client1 slots=1
