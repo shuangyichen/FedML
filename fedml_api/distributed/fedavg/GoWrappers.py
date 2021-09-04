@@ -69,8 +69,9 @@ def genShamirShareString_robust(shamirShare, numPeers, logDegree, scale):
     return res
 
 def decrypt(tsk,pcksShareString, encResultStr, logDegree, scale, inputLength, numPeers):
-    init = time.time()
+    #init = time.time()
     pcksShareString = pcksShareString.encode()
+    init = time.time()
     res = lib.decrypt(GoString(tsk,len(tsk)),GoString(pcksShareString,len(pcksShareString)), GoString(encResultStr,len(encResultStr)), logDegree, 2.**scale, inputLength, numPeers)
     print("Decryption time", time.time()-init)
     res = res.decode()

@@ -2,7 +2,7 @@ import os
 
 import torch
 import numpy as np
-
+from scipy.sparse import csr_matrix
 
 def transform_list_to_tensor(model_params_list):
     for k in model_params_list.keys():
@@ -42,3 +42,14 @@ def post_complete_message_to_sweep_process(args):
 
     with os.fdopen(pipe_fd, 'w') as pipe:
         pipe.write("training is finished! \n%s\n" % (str(args)))
+
+
+def random_matrix(p,s,w,seed):
+    np.random.seed(seed)
+    counts = np.int(np.random.normal(loc=s*w*p*2, scale=np.sqrt(s * w * 2 * p * (1 - 2 * p)), size=(1)))
+    rows = np.random.uniform(low=0,high=s,size=(counts)).astype(int)
+    cols = np.random.uniform(low=0,high=w,size=(counts)).astype(int)
+    vals = np.random.binomial(n=1,p=0.5,size=(counts))*2-1
+    SparseTensor = csr_matrix((vals, (rows,cols)), shape=(s,w)).toarray()
+    np.random.shuffle(SparseTensor)
+    return SparseTensor
