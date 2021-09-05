@@ -3,7 +3,7 @@ import os, signal
 import sys
 
 from .message_define import MyMessage
-from .utils import transform_tensor_to_list, post_complete_message_to_sweep_process
+from .utils import random_matrix,transform_tensor_to_list, post_complete_message_to_sweep_process
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../../../")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../../../../FedML")))
@@ -35,7 +35,10 @@ class FedAVGServerManager(ServerManager):
         self.count_times = 0
         self.robust = robust
         self.if_check_client_status = True
-
+        self.compression = args.compression
+        self.rate = args.compression_rate
+        self.alpha = args.compression_alpha
+        self.samples = int(self.params_count / self.rate)
 
         for idx in range(self.worker_num):
             self.flag_client_uploaded_dict[idx] = False
@@ -81,6 +84,10 @@ class FedAVGServerManager(ServerManager):
             res = decrypt(self.tsk,','.join(self.aggregator.pcks_share_list),self.aggr_enc_model_list,self.log_degree,self.log_scale,self.params_count,self.worker_num)
             #print("decrypted res,",res[0:20])
             res = np.array(res).reshape(-1, 1)/self.worker_num
+
+            if self.compression == 1:
+                phi = random_matrix(self.alpha/2/self.samples, self.samples, self.params_count, seed = self.round_idx)
+                res = phi.transpose().dot(res)
             model_params = self.aggregator.get_global_model_params()
             self.shape = {}
             idx = 0

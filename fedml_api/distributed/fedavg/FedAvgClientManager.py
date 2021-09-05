@@ -38,13 +38,13 @@ class FedAVGClientManager(ClientManager):
         self.flag_shamirshare_uploaded_dict = dict()
         for idx in range(self.worker_num):
             self.flag_shamirshare_uploaded_dict[idx] = False
-        self.compression = 1
-        self.rate = 1
-        if compression == 0:
-            self.rate = 1
+        self.compression = args.compression
+        self.rate = args.compression_rate
+        if self.compression == 0:
+            self.rate = 1.0
         self.samples = int(self.params_count / self.rate)
-        self.error = np.zeros((self.params_count,))
-        self.alpha = 0.1
+        self.error = np.zeros((self.params_count,1))
+        self.alpha = args.compression_alpha
         self.beta = 1 / self.alpha / (self.rate + 1 + 1 / self.alpha)
 
 
@@ -119,16 +119,15 @@ class FedAVGClientManager(ClientManager):
         logging.info("#######training########### round_id = %d" % self.round_idx)
         weights, local_sample_num = self.trainer.train(self.round_idx)
         #print(weights[0:10])
-        weights = weights.reshape(-1)
+        weights = weights.reshape(-1,1)
         error_compensated = weights + self.error
         if self.compression==1:
             phi = random_matrix(self.alpha/2/self.samples, self.samples,self.params_count,seed = round_idx)
-            compressed = beta * phi * error_compensated
-            recov = np.transpose(phi) * phi
-            error = error_compensated - recov
+            compressed = self.beta * phi.dot(error_compensated)
+            recov = phi.transpose().dot(compressed)
+            self.error = error_compensated - recov
         else:
             compressed = weights
-        #print("shape",weights.reshape(-1).shape)
 
 
         enc_weights = self.encrypt(compressed)

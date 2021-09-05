@@ -47,9 +47,11 @@ def post_complete_message_to_sweep_process(args):
 def random_matrix(p,s,w,seed):
     np.random.seed(seed)
     counts = np.int(np.random.normal(loc=s*w*p*2, scale=np.sqrt(s * w * 2 * p * (1 - 2 * p)), size=(1)))
+    np.random.seed(seed)
     rows = np.random.uniform(low=0,high=s,size=(counts)).astype(int)
+    np.random.seed(seed)
     cols = np.random.uniform(low=0,high=w,size=(counts)).astype(int)
     vals = np.random.binomial(n=1,p=0.5,size=(counts))*2-1
-    SparseTensor = csr_matrix((vals, (rows,cols)), shape=(s,w)).toarray()
-    np.random.shuffle(SparseTensor)
+    vals = vals.astype(np.float32)
+    SparseTensor = csr_matrix((vals, (rows,cols)), shape=(s,w))
     return SparseTensor
