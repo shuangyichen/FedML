@@ -148,7 +148,7 @@ func genTPK(logDegree uint64, scale float64)(res *C.char, tsk_Cstring *C.char){
 }
 
 //export decrypt
-func decrypt(tsk_string string, pcksShareString string, encResultStr string,logDegree uint64, scale float64, inputLength int, numPeers int)(res *C.char){
+func decrypt(client_chosen string, tsk_string string, pcksShareString string, encResultStr string,logDegree uint64, scale float64, inputLength int, numPeers int)(res *C.char){
 	var ringPrime uint64 = 0x10000000001d0001
     var ringPrimeP uint64 = 0xfffffffffffc001
     //fmt.Println("decrypt")
@@ -200,17 +200,22 @@ func decrypt(tsk_string string, pcksShareString string, encResultStr string,logD
         encResult[pieceCounter] = ckks.NewCiphertext(params, 1, params.MaxLevel(), params.Scale())
         encResult[pieceCounter].SetValue(ctContents)
     }
-
+    clients := strings.Split(client_chosen,",")
     pcksShares := make([][]dckks.PCKSShare, numPeers)
     pcksCombined := make([]dckks.PCKSShare, numPieces)
 	for i := range pcksCombined {
 		pcksCombined[i] = pcks.AllocateShares(params.MaxLevel())
 	}
     pcksSharesStr := strings.Split(pcksShareString, ",")
-	for peerIdx := range pcksShares {
+	for Idx := range clients {
 		//if decryptionParticipation[peerIdx] == 1 {
-			pcksShares[peerIdx] = make([]dckks.PCKSShare, numPieces)
-            pcksShareStr  := pcksSharesStr[peerIdx]
+            peerIdx, err := strconv.Atoi(clients[Idx])
+            if err != nil {
+                panic(err)
+            }
+            peerIdx = peerIdx-1
+            pcksShares[peerIdx] = make([]dckks.PCKSShare, numPieces)
+            pcksShareStr  := pcksSharesStr[Idx]
             crtStrPiece := pcksShareStr[0 : len(pcksShareStr)-1]
 			crtStrPieceArr := strings.Split(crtStrPiece, ":")
 			crtStrPieceArr = crtStrPieceArr[0 : len(crtStrPieceArr)-1]

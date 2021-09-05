@@ -51,7 +51,7 @@ lib.genTPK.argtypes = [c_ulonglong, c_double]
 lib.genTPK.restype = genTPK_return
 lib.genPCKSShare.argtypes = [GoString, GoString, GoString, c_ulonglong, c_ulonglong,c_ubyte,c_ulonglong, c_double]
 lib.genPCKSShare.restype = c_char_p
-lib.decrypt.argtypes = [GoString, GoString, GoString, c_ulonglong, c_double, c_ulonglong, c_longlong ]
+lib.decrypt.argtypes = [GoString, GoString, GoString, GoString, c_ulonglong, c_double, c_ulonglong, c_longlong ]
 lib.decrypt.restype = c_char_p
 lib.genShamirShareString_robust.argtypes = [GoString, c_longlong, c_ulonglong, c_double]
 lib.genShamirShareString_robust.restype = c_char_p
@@ -68,10 +68,12 @@ def genShamirShareString_robust(shamirShare, numPeers, logDegree, scale):
     res = lib.genShamirShareString_robust(GoString(shamirShare,len(shamirShare)), numPeers, logDegree, 2.**scale)
     return res
 
-def decrypt(tsk,pcksShareString, encResultStr, logDegree, scale, inputLength, numPeers):
-    init = time.time()
+def decrypt(client_chosen,tsk,pcksShareString, encResultStr, logDegree, scale, inputLength, numPeers):
+    #init = time.time()
+    client_chosen = client_chosen.encode()
     pcksShareString = pcksShareString.encode()
-    res = lib.decrypt(GoString(tsk,len(tsk)),GoString(pcksShareString,len(pcksShareString)), GoString(encResultStr,len(encResultStr)), logDegree, 2.**scale, inputLength, numPeers)
+    init = time.time()
+    res = lib.decrypt(GoString(client_chosen,len(client_chosen)),GoString(tsk,len(tsk)),GoString(pcksShareString,len(pcksShareString)), GoString(encResultStr,len(encResultStr)), logDegree, 2.**scale, inputLength, numPeers)
     print("Decryption time", time.time()-init)
     res = res.decode()
     res = str.split(res, " ")[0:-1]

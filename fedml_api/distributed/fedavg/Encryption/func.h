@@ -71,19 +71,6 @@ typedef struct { void *data; GoInt len; GoInt cap; } GoSlice;
 extern "C" {
 #endif
 
-extern char* genCollectivePK(GoString cpkStr, GoInt numPeers, GoUint64 logDegree, GoFloat64 scale);
-extern char* genDecryptionCoefficients(GoString clientsParticipated);
-extern char* aggregateEncrypted(GoString encInputsString, GoInt numPeers, GoUint64 logDegree, GoFloat64 scale, GoInt inputLength);
-
-/* Return type for genTPK */
-struct genTPK_return {
-	char* r0; /* res */
-	char* r1; /* tsk_Cstring */
-};
-extern struct genTPK_return genTPK(GoUint64 logDegree, GoFloat64 scale);
-extern char* decrypt(GoString tsk_string, GoString pcksShareString, GoString encResultStr, GoUint64 logDegree, GoFloat64 scale, GoInt inputLength, GoInt numPeers);
-extern char* encryptMsg(GoSlice inputs, GoString cpkString, GoString shamirShareString, GoUint8 robust, GoUint64 logDegree, GoFloat64 scale);
-extern char* genPCKSShare(GoString enc_aggr_model, GoString TPK, GoString shamirShareString, GoUint64 decryptionCoefficient, GoInt inputLength, GoUint8 robust, GoUint64 logDegree, GoFloat64 scale);
 extern char* genShamirShareString_robust(GoString shamirShare, GoInt numPeers, GoUint64 logDegree, GoFloat64 scale, GoFloat64 resiliency);
 
 /* Return type for genShamirShares */
@@ -99,6 +86,19 @@ struct genCollectiveKeyShare_not_robust_return {
 	char* r1; /* shamirShareString */
 };
 extern struct genCollectiveKeyShare_not_robust_return genCollectiveKeyShare_not_robust(GoInt numPeers, GoUint64 logDegree, GoFloat64 scale, GoFloat64 resiliency);
+extern char* encryptMsg(GoSlice inputs, GoString cpkString, GoString shamirShareString, GoUint8 robust, GoUint64 logDegree, GoFloat64 scale);
+extern char* genPCKSShare(GoString enc_aggr_model, GoString TPK, GoString shamirShareString, GoUint64 decryptionCoefficient, GoInt inputLength, GoUint8 robust, GoUint64 logDegree, GoFloat64 scale);
+extern char* genCollectivePK(GoString cpkStr, GoInt numPeers, GoUint64 logDegree, GoFloat64 scale);
+extern char* genDecryptionCoefficients(GoString clientsParticipated);
+extern char* aggregateEncrypted(GoString encInputsString, GoInt numPeers, GoUint64 logDegree, GoFloat64 scale, GoInt inputLength);
+
+/* Return type for genTPK */
+struct genTPK_return {
+	char* r0; /* res */
+	char* r1; /* tsk_Cstring */
+};
+extern struct genTPK_return genTPK(GoUint64 logDegree, GoFloat64 scale);
+extern char* decrypt(GoString client_chosen, GoString tsk_string, GoString pcksShareString, GoString encResultStr, GoUint64 logDegree, GoFloat64 scale, GoInt inputLength, GoInt numPeers);
 
 #ifdef __cplusplus
 }

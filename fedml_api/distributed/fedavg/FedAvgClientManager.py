@@ -12,7 +12,7 @@ except ImportError:
     from FedML.fedml_core.distributed.client.client_manager import ClientManager
     from FedML.fedml_core.distributed.communication.message import Message
 from .message_define import MyMessage
-from .utils import transform_list_to_tensor, post_complete_message_to_sweep_process
+from .utils import random_matrix,transform_list_to_tensor, post_complete_message_to_sweep_process
 from .GoWrappers import *
 import numpy as np
 import time
@@ -38,6 +38,14 @@ class FedAVGClientManager(ClientManager):
         self.flag_shamirshare_uploaded_dict = dict()
         for idx in range(self.worker_num):
             self.flag_shamirshare_uploaded_dict[idx] = False
+        self.compression = args.compression
+        self.rate = args.compression_rate
+        if self.compression == 0:
+            self.rate = 1.0
+        self.samples = int(self.params_count / self.rate)
+        self.error = np.zeros((self.params_count,1))
+        self.alpha = args.compression_alpha
+        self.beta = 1 / self.alpha / (self.rate + 1 + 1 / self.alpha)
 
 
     def register_message_receive_handlers(self):
@@ -82,7 +90,7 @@ class FedAVGClientManager(ClientManager):
         self.trainer.update_model(model_params)
         self.trainer.update_dataset(int(client_index))
         self.round_idx += 1
-        self.__train()
+        self.__train(self.round_idx)
         if self.round_idx == self.num_rounds - 1:
         #    post_complete_message_to_sweep_process(self.args)
             self.finish()
@@ -97,7 +105,7 @@ class FedAVGClientManager(ClientManager):
         self.trainer.update_model(global_model_params)
         self.trainer.update_dataset(int(client_index))
         self.round_idx = 0
-        self.__train()
+        self.__train(self.round_idx)
 
     def check_whether_all_receive(self):
         for idx in range(self.worker_num):
@@ -107,11 +115,22 @@ class FedAVGClientManager(ClientManager):
             self.flag_shamirshare_uploaded_dict[idx] = False
         return True
 
-    def __train(self):
+    def __train(self,round_idx):
         logging.info("#######training########### round_id = %d" % self.round_idx)
         weights, local_sample_num = self.trainer.train(self.round_idx)
         #print(weights[0:10])
-        enc_weights = self.encrypt(weights.reshape(-1))
+        weights = weights.reshape(-1,1)
+        error_compensated = weights + self.error
+        if self.compression==1:
+            phi = random_matrix(self.alpha/2/self.samples, self.samples,self.params_count,seed = round_idx)
+            compressed = self.beta * phi.dot(error_compensated)
+            recov = phi.transpose().dot(compressed)
+            self.error = error_compensated - recov
+        else:
+            compressed = weights
+
+
+        enc_weights = self.encrypt(compressed)
         self.send_model_to_server(0, enc_weights, local_sample_num)
 
     def handle_message_decryption_info_from_server(self,msg_params):
@@ -144,7 +163,7 @@ class FedAVGClientManager(ClientManager):
 
 
     def handle_message_enc_aggregated_model_from_server(self,msg_params):
-        client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
+        #client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
         self.enc_aggregated_model = msg_params.get(MyMessage.MSG_ARG_KEY_ENCRYPTED_MODEL_PARAMS)
 
         self.announce_liveness_status()
