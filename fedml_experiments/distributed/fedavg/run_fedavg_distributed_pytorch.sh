@@ -12,6 +12,7 @@ DATASET=$9
 DATA_DIR=${10}
 CLIENT_OPTIMIZER=${11}
 CI=${12}
+ROBUST=${13}
 
 PROCESS_NUM=`expr $WORKER_NUM + 1`
 echo $PROCESS_NUM
@@ -30,4 +31,5 @@ mpirun -np $PROCESS_NUM python3 ./main_fedavg.py \
   --client_optimizer $CLIENT_OPTIMIZER \
   --batch_size $BATCH_SIZE \
   --lr $LR \
-  --ci $CI
+  --ci $CI \
+  --robust $ROBUST

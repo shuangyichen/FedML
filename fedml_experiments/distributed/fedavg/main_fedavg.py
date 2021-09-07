@@ -117,6 +117,9 @@ def add_args(parser):
 
     parser.add_argument('--ci', type=int, default=0,
                         help='CI')
+
+    parser.add_argument('--robust', type=int,
+                        help='ROBUST')
     args = parser.parse_args()
     return args
 
@@ -289,6 +292,11 @@ if __name__ == "__main__":
     args = add_args(parser)
     logging.info(args)
 
+    if args.robust == 0:
+        robust = False
+    else:
+        robust = True
+
     # customize the process name
     str_process_name = "FedAvg (distributed):" + str(process_id)
     setproctitle.setproctitle(str_process_name)
@@ -306,6 +314,7 @@ if __name__ == "__main__":
                  ", process Name = " + str(psutil.Process(os.getpid())))
 
     # initialize the wandb machine learning experimental tracking platform (https://www.wandb.com/).
+    '''
     if process_id == 0:
         wandb.init(
             # project="federated_nas",
@@ -315,7 +324,7 @@ if __name__ == "__main__":
                 args.lr),
             config=args
         )
-
+    '''
     # Set the random seed. The np.random seed determines the dataset partition.
     # The torch_manual_seed determines the initial weight.
     # We fix these two, so that we can reproduce the result.
@@ -344,7 +353,7 @@ if __name__ == "__main__":
         # start "federated averaging (FedAvg)"
     FedML_FedAvg_distributed(process_id, worker_number, device, comm,
                              model, param_num, train_data_num, train_data_global, test_data_global,
-                             train_data_local_num_dict, train_data_local_dict, test_data_local_dict, args)
+                             train_data_local_num_dict, train_data_local_dict, test_data_local_dict, args, robust)
     # except Exception as e:
     #     print(e)
     #     logging.info('traceback.format_exc():\n%s' % traceback.format_exc())

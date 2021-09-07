@@ -1,4 +1,4 @@
-package main                                                                                                                                                                       
+package main
 
 import (
     "C"
@@ -14,6 +14,7 @@ import (
     "strconv"
     "strings"
     //"time"
+    "unsafe"
 )
 
 //export genDecryptionCoefficients
@@ -44,7 +45,7 @@ func genDecryptionCoefficients(clientsParticipated string)(res_Cstring *C.char){
 
 
 //export aggregateEncrypted
-func aggregateEncrypted(encInputsString string, numPeers int, logDegree uint64, scale float64, inputLength int) (encResult_cstring *C.char) {
+func aggregateEncrypted(encInputList []uint64, numPeers int, logDegree uint64, scale float64, inputLength int) (encResultList uintptr, numPieces int) {
     var ringPrime uint64 = 0x10000000001d0001
     var ringPrimeP uint64 = 0xfffffffffffc001
     //fmt.Println("aggregateEncrypted")
@@ -57,7 +58,7 @@ func aggregateEncrypted(encInputsString string, numPeers int, logDegree uint64, 
     params.SetScale(scale)
     params.SetLogSlots(logDegree - 1)
 
-    numPieces := 0
+    numPieces = 0
     packSize := 2 * int(params.Slots())
     if inputLength%packSize == 0 {
         numPieces = inputLength / packSize
@@ -67,34 +68,35 @@ func aggregateEncrypted(encInputsString string, numPeers int, logDegree uint64, 
     if err != nil {
         panic(err)
     }
-    encClientInputs := strings.Split(encInputsString, ",")
+    encClientInputs := unsqueezedArray(encInputList, numPeers)
 
+    //fmt.Println("encClientInputs",encInputList[0:10])
+    //fmt.Println("encClientInputs width",len(encClientInputs[0]))
     encInputs := make([][]*ckks.Ciphertext, numPeers)
-    //encClientInputs := make([]string, numPeers)
-    for i := range encClientInputs {
-        encClientInputs[i] = strings.Split(encClientInputs[i], "\n")[0]
-        //encClientInputs[i] = message[0 : len(message)-1]
-    }
 
     evaluator := ckks.NewEvaluator(params)
     for encCounter := range encClientInputs {
         encInputs[encCounter] = make([]*ckks.Ciphertext, numPieces)
         crtClient := encClientInputs[encCounter]
-        piecesArr := strings.Split(crtClient, ":")
-        piecesArr = piecesArr[0 : len(piecesArr)-1]
+        piecesArr := unsqueezedArray(crtClient, numPieces)
         //fmt.Println("piecesArr",len(piecesArr))
+        // fmt.Println("piecesArr height",len(piecesArr[0]))
         //fmt.Println("numPieces",numPieces)
         if len(piecesArr) != numPieces {
             fmt.Println("Encryted files received incorrectly")
         }
         for pieceCounter := range encInputs[encCounter] {
             crt := piecesArr[pieceCounter]
-            polyCoeffsStringArr := strings.Split(crt, "/")
-            polyCoeffsStringArr = polyCoeffsStringArr[0 : len(polyCoeffsStringArr)-1]
-            ctContents := make([]*ring.Poly, len(polyCoeffsStringArr))
+            polyCoeffsArr := unsqueezedArray(crt,2)
+            //fmt.Println("len of polyCoeffsArr",len(polyCoeffsArr))
+            //fmt.Println("polyCoeffsArr height", len(polyCoeffsArr[0]))
+            ctContents := make([]*ring.Poly, len(polyCoeffsArr))
             for ctContentCounter := range ctContents {
                 ctContents[ctContentCounter] = ring.NewPoly(params.N(), params.MaxLevel()+1)
-                ctContents[ctContentCounter].SetCoefficients(polyCoeffsDecode(polyCoeffsStringArr[ctContentCounter]))
+                ctContents[ctContentCounter].SetCoefficients(unsqueezedArray(polyCoeffsArr[ctContentCounter],1))
+                //tmp :=unsqueezedArray(polyCoeffsArr[ctContentCounter],1)
+                //fmt.Println("len of tmp",len(tmp))
+                //fmt.Println("tmp height", len(tmp[0]))
             }
             encInputs[encCounter][pieceCounter] = ckks.NewCiphertext(params, 1, params.MaxLevel(), params.Scale())
             encInputs[encCounter][pieceCounter].SetValue(ctContents)
@@ -108,22 +110,31 @@ func aggregateEncrypted(encInputsString string, numPeers int, logDegree uint64, 
             evaluator.Add(encResult[pieceCounter], encInputs[i][pieceCounter], encResult[pieceCounter])
         }
     }
-    encResultStr := ""
+
+    encResultArray := make([][]uint64, numPieces)
     for pieceCounter := range encResult {
+        encTmpArray := make([][]uint64, numPeers)
         for ctPolyCounter := range encResult[pieceCounter].Value() {
-            encResultStr += polyCoeffsEncode(encResult[pieceCounter].Value()[ctPolyCounter].Coeffs) + "/"
+            encTmpArray[ctPolyCounter] = squeezedArray(encResult[pieceCounter].Value()[ctPolyCounter].Coeffs)
         }
-        encResultStr += ":"
+        encResultArray[pieceCounter]  = squeezedArray(encTmpArray)
+        //fmt.Println("encResultArray",len(encResultArray[pieceCounter]))
     }
-    encResultStr += "\n"
-    encResult_cstring = C.CString(encResultStr)
+    squeezed_encResultArray_Length := numPieces * len(encResultArray[0])
+    squeezed_encResultArray := make([]uint64,squeezed_encResultArray_Length)
+    squeezed_encResultArray = squeezedArray(encResultArray)
+    fmt.Println("squeezed_encResultArray last 2 ", squeezed_encResultArray[squeezed_encResultArray_Length-2:])
+    encResultList = uintptr(unsafe.Pointer(&squeezed_encResultArray[0]))
+
+
+
     return
 }
 
 //export genTPK
-func genTPK(logDegree uint64, scale float64)(res *C.char, tsk_Cstring *C.char){
+func genTPK(logDegree uint64, scale float64)(tpkPointer uintptr, tskPointer uintptr){
     var ringPrime uint64 = 0x10000000001d0001
-	var ringPrimeP uint64 = 0xfffffffffffc001 
+	var ringPrimeP uint64 = 0xfffffffffffc001
     moduli := &ckks.Moduli{Qi: []uint64{ringPrime}, Pi: []uint64{ringPrimeP}}
 	params, err := ckks.NewParametersFromModuli(logDegree, moduli)
     if err != nil {
@@ -131,24 +142,32 @@ func genTPK(logDegree uint64, scale float64)(res *C.char, tsk_Cstring *C.char){
 	}
 	params.SetScale(scale)
 	params.SetLogSlots(logDegree - 1)
-    
-    tsk, tpk := ckks.NewKeyGenerator(params).GenKeyPair()
-    targetPublicKeyStr := ""
-	targetPKContent := tpk.Get()
 
+    tsk, tpk := ckks.NewKeyGenerator(params).GenKeyPair()
+    //targetPublicKeyStr := ""
+	targetPKContent := tpk.Get()
+    tpkArray := make([][]uint64,len(targetPKContent))
 	for itemIdx := range targetPKContent {
-		targetPublicKeyStr += polyCoeffsEncode(targetPKContent[itemIdx].Coeffs) + "/"
+        tpkArray[itemIdx] = squeezedArray(targetPKContent[itemIdx].Coeffs)
+        //targetPublicKeyStr += polyCoeffsEncode(targetPKContent[itemIdx].Coeffs) + "/"
 	}
-    tsk_string := polyCoeffsEncode(tsk.Get().Coeffs)
-    tsk_string += "\n"
-    tsk_Cstring =  C.CString(tsk_string)
-	targetPublicKeyStr += "\n"
-    res = C.CString(targetPublicKeyStr)
+    tpkheight := len(tpkArray[0])
+    tpkLength := tpkheight*len(targetPKContent)
+    tskheight := len(tsk.Get().Coeffs[0])
+    tskLength := tskheight*len(tsk.Get().Coeffs)
+
+    tskArray := make([]uint64,tskLength)
+    tskArray = squeezedArray(tsk.Get().Coeffs)
+    tskPointer = uintptr(unsafe.Pointer(&tskArray[0]))
+    tpkList := make([]uint64,tpkLength)
+    tpkList = squeezedArray(tpkArray)
+    tpkPointer = uintptr(unsafe.Pointer(&tpkList[0]))
+
     return
 }
 
 //export decrypt
-func decrypt(tsk_string string, pcksShareString string, encResultStr string,logDegree uint64, scale float64, inputLength int, numPeers int)(res *C.char){
+func decrypt(tskList []uint64, pcksShareList []uint64, encResultList []uint64,logDegree uint64, scale float64, inputLength int, numPeers int)(decrypted uintptr){
 	var ringPrime uint64 = 0x10000000001d0001
     var ringPrimeP uint64 = 0xfffffffffffc001
     //fmt.Println("decrypt")
@@ -156,8 +175,7 @@ func decrypt(tsk_string string, pcksShareString string, encResultStr string,logD
     //fmt.Println("scale",scale)
     //fmt.Println("inputLength",inputLength)
     //fmt.Println("numPeers",numPeers)
-    tsk_string = tsk_string[0:len(tsk_string)]
-    //tsk_poly := ring.NewPoly()
+
     moduli := &ckks.Moduli{Qi: []uint64{ringPrime}, Pi: []uint64{ringPrimeP}}
     params, err := ckks.NewParametersFromModuli(logDegree, moduli)
     if err != nil {
@@ -181,21 +199,19 @@ func decrypt(tsk_string string, pcksShareString string, encResultStr string,logD
     ringQP, _ := ring.NewRing(params.N(), append(params.Qi(), params.Pi()...))
     ringQ, _ := ring.NewRing(params.N(), params.Qi())
     tsk_poly := ringQP.NewPoly()
-    tsk_poly.SetCoefficients(polyCoeffsDecode(tsk_string))
+    tsk_poly.SetCoefficients(unsqueezedArray(tskList,2))
     tsk.Set(tsk_poly)
 
     pcks := dckks.NewPCKSProtocol(params, 3.19)
-    pieceArr := strings.Split(encResultStr, ":")
-    pieceArr = pieceArr[0 : len(pieceArr)-1]
+    pieceArr := unsqueezedArray(encResultList,numPieces)
     encResult := make([]*ckks.Ciphertext, numPieces)
     for pieceCounter := range pieceArr {
         message := pieceArr[pieceCounter]
-        polyCoeffsStringArr := strings.Split(message, "/")
-        polyCoeffsStringArr = polyCoeffsStringArr[0 : len(polyCoeffsStringArr)-1]
-        ctContents := make([]*ring.Poly, len(polyCoeffsStringArr))
+        polyCoeffsArr := unsqueezedArray(message,2)
+        ctContents := make([]*ring.Poly, len(polyCoeffsArr))
         for ctContentCounter := range ctContents {
             ctContents[ctContentCounter] = ring.NewPoly(params.N(), params.MaxLevel()+1)
-            ctContents[ctContentCounter].SetCoefficients(polyCoeffsDecode(polyCoeffsStringArr[ctContentCounter]))
+            ctContents[ctContentCounter].SetCoefficients(unsqueezedArray(polyCoeffsArr[ctContentCounter],1))
         }
         encResult[pieceCounter] = ckks.NewCiphertext(params, 1, params.MaxLevel(), params.Scale())
         encResult[pieceCounter].SetValue(ctContents)
@@ -206,24 +222,22 @@ func decrypt(tsk_string string, pcksShareString string, encResultStr string,logD
 	for i := range pcksCombined {
 		pcksCombined[i] = pcks.AllocateShares(params.MaxLevel())
 	}
-    pcksSharesStr := strings.Split(pcksShareString, ",")
+    pcksSharesArray := unsqueezedArray(pcksShareList,numPeers)
 	for peerIdx := range pcksShares {
 		//if decryptionParticipation[peerIdx] == 1 {
 			pcksShares[peerIdx] = make([]dckks.PCKSShare, numPieces)
-            pcksShareStr  := pcksSharesStr[peerIdx]
-            crtStrPiece := pcksShareStr[0 : len(pcksShareStr)-1]
-			crtStrPieceArr := strings.Split(crtStrPiece, ":")
-			crtStrPieceArr = crtStrPieceArr[0 : len(crtStrPieceArr)-1]
-			if len(crtStrPieceArr) != numPieces {
+            pcksSharePiece  := pcksSharesArray[peerIdx]
+			crtPieceArr := unsqueezedArray(pcksSharePiece, numPieces)
+			if len(crtPieceArr) != numPieces {
 				fmt.Println("pcks error!")
 			}
 			for pieceCounter := range pcksShares[peerIdx] {
-				crtStr := crtStrPieceArr[pieceCounter]
-				polyCoeffStr := strings.Split(crtStr, "/")
+				crt := crtPieceArr[pieceCounter]
+				polyCoeff := unsqueezedArray(crt,2)
 				pcksShares[peerIdx][pieceCounter] = pcks.AllocateShares(params.MaxLevel())
 				for contentCounter := range pcksShares[peerIdx][pieceCounter] {
 					pcksShares[peerIdx][pieceCounter][contentCounter] = ringQ.NewPolyLvl(params.MaxLevel())
-					pcksShares[peerIdx][pieceCounter][contentCounter].SetCoefficients(polyCoeffsDecode(polyCoeffStr[contentCounter]))
+					pcksShares[peerIdx][pieceCounter][contentCounter].SetCoefficients(unsqueezedArray(polyCoeff[contentCounter],1))
 				}
 				pcks.AggregateShares(pcksShares[peerIdx][pieceCounter], pcksCombined[pieceCounter], pcksCombined[pieceCounter])
 			}
@@ -245,13 +259,7 @@ func decrypt(tsk_string string, pcksShareString string, encResultStr string,logD
 		}
 	}
 	output = output[0:inputLength]
-	//fmt.Println(output[19990:])
-	outputStr := ""
-	for idx := range output {
-		outputStr += fmt.Sprintf("%f", output[idx]) + " "
-	}
-
-	res = C.CString(outputStr)
+    fmt.Println("output",output[inputLength-2:inputLength])
+    decrypted = uintptr(unsafe.Pointer(&output[0]))
     return
-
 }

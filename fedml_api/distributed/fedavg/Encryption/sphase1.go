@@ -6,7 +6,7 @@ import (
 	//"fmt"
 	//"time"
 
-//	"fmt"
+	//"fmt"
 	"github.com/ldsec/lattigo/v2/ckks"
 	"github.com/ldsec/lattigo/v2/dckks"
 	"github.com/ldsec/lattigo/v2/ring"
@@ -14,9 +14,10 @@ import (
 	//"net"
 	//"os"
 	//"strconv"
-	"strings"
+	//"strings"
 	//"sync"
 	//"time"
+    "unsafe"
 )
 
 
@@ -24,19 +25,11 @@ import (
 
 
 //export genCollectivePK
-func genCollectivePK(cpkStr string,numPeers int, logDegree uint64, scale float64)(res *C.char){
+func genCollectivePK(cpk []uint64,numPeers int, logDegree uint64, scale float64)(res uintptr){
 	var ringPrime uint64 = 0x10000000001d0001
 	var ringPrimeP uint64 = 0xfffffffffffc001
-    //cpkStr = cpkStr[1:len(cpkStr)-1]
-    //cpkgSharesStr := strings.Split(cpkStr, ",")
-    //fmt.Println("genCollectivePK")
-	//fmt.Println("numpeers:",numPeers)
-    //fmt.Println("logDegree:",logDegree)
     moduli := &ckks.Moduli{Qi: []uint64{ringPrime}, Pi: []uint64{ringPrimeP}}
-    //logDegree = 13
 
-    //fmt.Println("numpeers",numPeers) 
-    //fmt.Println("scale",scale)   
     params, err := ckks.NewParametersFromModuli(logDegree, moduli)
     if err != nil {
         panic(err)
@@ -50,17 +43,18 @@ func genCollectivePK(cpkStr string,numPeers int, logDegree uint64, scale float64
 	ringQP, _ := ring.NewRing(params.N(), append(params.Qi(), params.Pi()...))
     crsGen := ring.NewUniformSampler(lattigoPRNG, ringQP)
 	crs := crsGen.ReadNew() // for the public-key
-    cpkgSharesStr := strings.Split(cpkStr, ",")
     ckg := dckks.NewCKGProtocol(params)
+
     cpkgShares := make([]dckks.CKGShare, numPeers)
+
     pk := ckks.NewPublicKey(params)
-	ckgCombined := ckg.AllocateShares()
-	//for peerIdx := range clientIPs {
+
+    ckgCombined := ckg.AllocateShares()
+
+    coeffsArray := unsqueezedArray(cpk, numPeers)//for peerIdx := range clientIPs {
     for Idx:=0;Idx<numPeers;Idx++{
-        cpkgstr := cpkgSharesStr[Idx]
-        cpkgstrs := strings.Split(cpkgstr,"\n")[0]
-        coeffs := polyCoeffsDecode(cpkgstrs)
-		poly := ringQP.NewPoly()
+        coeffs := unsqueezedArray(coeffsArray[Idx], 2)
+        poly := ringQP.NewPoly()
 		poly.SetCoefficients(coeffs)
 
 		cpkgShares[Idx] = poly
@@ -68,14 +62,23 @@ func genCollectivePK(cpkStr string,numPeers int, logDegree uint64, scale float64
 		ckg.AggregateShares(cpkgShares[Idx], ckgCombined, ckgCombined)
 
 	}
-	ckg.GenPublicKey(ckgCombined, crs, pk)
 
-    publicKeyStr := ""
-	pkContent := pk.Get()
+
+
+	ckg.GenPublicKey(ckgCombined, crs, pk)
+    //ckg1.GenPublicKey(ckgCombined1, crs, pk1)
+    pkContent := pk.Get()
+    publicKey := make([][]uint64, len(pkContent))
+	//pkContent := pk.Get()
 	for itemIdx := range pkContent {
-		publicKeyStr += polyCoeffsEncode(pkContent[itemIdx].Coeffs) + "/"
-	}
-	publicKeyStr += "\n"
-    res = C.CString(publicKeyStr)
+		publicKey[itemIdx] = squeezedArray(pkContent[itemIdx].Coeffs)
+    }
+    PK := squeezedArray(publicKey)
+
+    //fmt.Println("publicKey array",len(PK))
+    p := unsafe.Pointer(&PK)
+    s := *(*[]uint64)(p)
+    res = uintptr(unsafe.Pointer(&s[0]))
+
     return
 }

@@ -4,7 +4,32 @@ import (
 	"C"
 	"strconv"
 	"strings"
+    //"fmt"
 )
+
+func unsqueezedArray(input []uint64, num int) [][]uint64{
+    resLoc := make([][]uint64, num)
+    length := len(input)
+    piece := length/num
+    for i := 0; i < num; i++ {
+        resLoc[i] = input[piece*i:piece*(i+1)]
+    }
+    return resLoc
+}
+
+
+func squeezedArray(input [][]uint64) []uint64{
+    var result = []uint64{}
+    for _, arr := range input {
+        for _, item := range arr {
+            result = append(result, item)
+        }
+    }
+    return result
+
+}
+
+
 
 func arrayToString(arr []uint64) string {
 	init := strconv.FormatUint(arr[0], 10)
@@ -32,7 +57,8 @@ func polyCoeffsEncode(coeffs [][]uint64) string {
 	res := ""
 	for dimZeroCounter := range coeffs {
 		tmp := coeffs[dimZeroCounter]
-		tmpRes := arrayToString(tmp)
+		//fmt.Println("polyCoeffsEncode",dimZeroCounter)
+        tmpRes := arrayToString(tmp)
 		res += tmpRes + " "
 	}
 	return res

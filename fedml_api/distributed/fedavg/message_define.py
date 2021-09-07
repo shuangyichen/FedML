@@ -35,6 +35,7 @@ class MyMessage(object):
     MSG_ARG_KEY_ENCRYPTED_MODEL_PARAMS = "enc_model_params"
     MSG_ARG_KEY_SS = "ShamirShares"
     MSG_ARG_KEY_CPK = "collective_public_key"
+    MSG_ARG_KEY_CPK_STR = "collective_public_key_str"
     MSG_ARG_KEY_PUBLIC_KEY = "public_key"
     MSG_ARG_KEY_PHASE1_FLAG = "whether phase 1 done"
     MSG_ARG_KEY_LIVENESS_STATUS = "liveness status"

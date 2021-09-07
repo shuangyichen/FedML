@@ -17,7 +17,7 @@ def FedML_init():
 
 
 def FedML_FedAvg_distributed(process_id, worker_number, device, comm, model, param_num, train_data_num, train_data_global, test_data_global,
-        train_data_local_num_dict, train_data_local_dict, test_data_local_dict, args,robust=True,log_degree=13, log_scale=40, resiliency=0, model_trainer=None, preprocessed_sampling_lists=None):
+        train_data_local_num_dict, train_data_local_dict, test_data_local_dict, args,robust=False,log_degree=13, log_scale=40, resiliency=0, model_trainer=None, preprocessed_sampling_lists=None):
     if process_id == 0:
         init_server(args, device, comm, process_id, worker_number, model, param_num, train_data_num, train_data_global,
                     test_data_global, train_data_local_dict, test_data_local_dict, train_data_local_num_dict,

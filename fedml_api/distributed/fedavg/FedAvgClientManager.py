@@ -1,7 +1,7 @@
 import logging
 import os
 import sys
-
+import time
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../../../")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../../../../FedML")))
 
@@ -12,7 +12,7 @@ except ImportError:
     from FedML.fedml_core.distributed.client.client_manager import ClientManager
     from FedML.fedml_core.distributed.communication.message import Message
 from .message_define import MyMessage
-from .utils import transform_list_to_tensor, post_complete_message_to_sweep_process
+from .utils import transform_dict_list, transform_list_to_tensor, post_complete_message_to_sweep_process
 from .GoWrappers import *
 import numpy as np
 
@@ -34,7 +34,7 @@ class FedAVGClientManager(ClientManager):
         #print("params_count",params_count)
         self.shamirshare_list = []
         self.SSstr = None
-        self.collective_shamirshare = dict()
+        self.collective_shamirshare = [None]*self.worker_num
         self.flag_shamirshare_uploaded_dict = dict()
         for idx in range(self.worker_num):
             self.flag_shamirshare_uploaded_dict[idx] = False
@@ -62,25 +62,25 @@ class FedAVGClientManager(ClientManager):
         all_received = self.check_whether_all_receive()
         self.shamirshare_list.append(shamirshares)
         if all_received:
-            collecitve_shamirshare = ':'.join(self.shamirshare_list)
-            collecitve_shamirshare += "\n"
-            #print("gen css of client", self.get_sender_id())
-            self.SSstr = genShamirShareString_robust(collecitve_shamirshare, self.worker_num, self.log_degree,self.log_scale)
-            #print("gen shamirshare string")
+            shamirshare_list = []
+            for ss in self.collective_shamirshare:
+                shamirshare_list += ss
+            SS = genShamirShareString_robust(shamirshare_list, self.worker_num, self.log_degree,self.log_scale)
+            self.SS = SS.tolist()
             self.send_message_CPK_to_server(0,self.CPK)
-
 
     #def handle_message_receive_model_from_server(self):
     def handle_message_receive_model_from_server(self, msg_params):
-        #logging.info("handle_message_receive_model_from_server.")
         model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
         client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
 
-        if self.args.is_mobile == 1:
-            model_params = transform_list_to_tensor(model_params)
-
+        #if self.args.is_mobile == 1:
+        #    model_params = transform_list_to_tensor(model_params)
         self.trainer.update_model(model_params)
         self.trainer.update_dataset(int(client_index))
+
+        #w = transform_dict_list(model_params)
+
         self.round_idx += 1
         self.__train()
         if self.round_idx == self.num_rounds - 1:
@@ -91,6 +91,7 @@ class FedAVGClientManager(ClientManager):
         global_model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
         client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
 
+        #print("model param", global_model_params)
         if self.args.is_mobile == 1:
             global_model_params = transform_list_to_tensor(global_model_params)
 
@@ -110,20 +111,23 @@ class FedAVGClientManager(ClientManager):
     def __train(self):
         logging.info("#######training########### round_id = %d" % self.round_idx)
         weights, local_sample_num = self.trainer.train(self.round_idx)
-        #print(weights[0:10])
-        enc_weights = self.encrypt(weights.reshape(-1))
-        self.send_model_to_server(0, enc_weights, local_sample_num)
+        #weights = np.ones((self.params_count,1))
+        #print("non-encryped weights last 10", weights[self.params_count-10:self.params_count])
+        enc_weights, self.numPieces= self.encrypt(weights.reshape(-1))
+
+        self.send_model_to_server(0, enc_weights.tolist(), local_sample_num)
 
     def handle_message_decryption_info_from_server(self,msg_params):
         decryptionParticipation = msg_params.get(MyMessage.MSG_ARG_KEY_DECRYPTION_PARTICIPATION)
         decryptionCoefficients = msg_params.get(MyMessage.MSG_ARG_KEY_DECRYPTION_COEFFI)
         if decryptionParticipation == 1:
             tpk = msg_params.get(MyMessage.MSG_ARG_KEY_TPK)
-            PCKSShare = genPCKSShare(self.enc_aggregated_model,tpk,self.SSstr, decryptionCoefficients, self.params_count, self.robust, self.log_degree, self.log_scale)
-            self.send_PCKS_share_to_server(PCKSShare)
+            PCKSShare = genPCKSShare(self.enc_aggregated_model,tpk,self.SS,self.worker_num, decryptionCoefficients, self.params_count, self.robust, self.log_degree, self.log_scale,self.numPieces)
+            self.send_PCKS_share_to_server(PCKSShare.tolist())
 
 
     def handle_message_public_key_from_server(self,msg_params):
+        print("phase 1",time.time()-self.phase1init)
         self.pk = msg_params.get(MyMessage.MSG_ARG_KEY_PUBLIC_KEY)
         self.send_message_phase1_done_to_server()
 
@@ -145,7 +149,6 @@ class FedAVGClientManager(ClientManager):
     def handle_message_enc_aggregated_model_from_server(self,msg_params):
         client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
         self.enc_aggregated_model = msg_params.get(MyMessage.MSG_ARG_KEY_ENCRYPTED_MODEL_PARAMS)
-
         self.announce_liveness_status()
 
     def announce_liveness_status(self):
@@ -156,25 +159,23 @@ class FedAVGClientManager(ClientManager):
 
 
     def send_SS(self):
-        ShamirShares, self.CPK = genShamirShares(self.worker_num,self.log_degree,self.log_scale, self.resiliency)
-        ShamirShares = ShamirShares.decode()
-        sharesArr = ShamirShares.split(':')
-        assert len(sharesArr)-1==self.worker_num
+        self.phase1init = time.time()
+        ShamirShares, CPK = genShamirShares(self.worker_num,self.log_degree,self.log_scale, self.resiliency)
+        self.CPK = CPK.tolist()
+        ShamirShares = ShamirShares.reshape(self.worker_num,-1)
         for partyCntr in range(self.worker_num):
-            sharedParts = sharesArr[partyCntr].split('/')
-            assert len(sharedParts)==2
-            if int(sharedParts[0])+1 == self.get_sender_id():
-                self.flag_shamirshare_uploaded_dict[int(sharedParts[0])] = True
-                self.collective_shamirshare[int(sharedParts[0])] = sharedParts[1]
-                self.shamirshare_list.append(sharedParts[1])
+            if partyCntr+1 == self.get_sender_id():
+                self.flag_shamirshare_uploaded_dict[partyCntr] = True
+                self.collective_shamirshare[partyCntr] = ShamirShares[partyCntr].tolist()
             else:
-                self.send_message_ShamirShares(int(sharedParts[0])+1,sharedParts[1])
-
+                self.send_message_ShamirShares(partyCntr+1,ShamirShares[partyCntr].tolist())
 
     def send_pk_to_server(self):
-
-        CPK, self.SSstr= genCollectiveKeyShare_not_robust(self.worker_num,self.log_degree,self.log_scale, self.resiliency)
-        self.send_message_CPK_to_server(0,CPK)
+        self.phase1init = time.time()
+        #CPK = genCollectiveKeyShare_not_robust(self.worker_num,self.log_degree,self.log_scale, self.resiliency)
+        CPK, SS = genCollectiveKeyShare_not_robust(self.worker_num,self.log_degree,self.log_scale, self.resiliency)
+        self.SS = SS.tolist()
+        self.send_message_CPK_to_server(0,CPK.tolist())
 
 
     def send_message_ShamirShares(self, receive_id, ShamirShares):
@@ -186,14 +187,16 @@ class FedAVGClientManager(ClientManager):
         #logging.info("send_message_CPK_to_server. receive_id = %d" % receive_id)
         message = Message(MyMessage.MSG_TYPE_C2S_SEND_CPK_TO_SERVER, self.get_sender_id(), receive_id)
         message.add_params(MyMessage.MSG_ARG_KEY_CPK, CPK)
+        #message.add_params(MyMessage.MSG_ARG_KEY_CPK_STR, CPKstr)
         self.send_message(message)
 
     def send_model_to_server(self, receive_id, weights, local_sample_num):
         message = Message(MyMessage.MSG_TYPE_C2S_SEND_ENC_MODEL_TO_SERVER, self.get_sender_id(), receive_id)
         message.add_params(MyMessage.MSG_ARG_KEY_ENCRYPTED_MODEL_PARAMS, weights)
         message.add_params(MyMessage.MSG_ARG_KEY_NUM_SAMPLES, local_sample_num)
+        #message.add_params(MyMessage.MSG_ARG_KEY_MODEL_PARAMS, pure_weights)
         self.send_message(message)
 
     def encrypt(self,weights):
-        ct = encrypt(weights.reshape(-1), self.pk, self.SSstr, self.robust,self.log_degree, self.log_scale, self.resiliency)
+        ct = encrypt(weights.reshape(-1), self.pk, self.SS, self.robust,self.log_degree, self.log_scale, self.resiliency, self.worker_num)
         return ct

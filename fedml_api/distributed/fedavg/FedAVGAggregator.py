@@ -38,7 +38,7 @@ class FedAVGAggregator(object):
             self.flag_client_model_uploaded_dict[idx] = False
 
     def add_pcks_share(self,index, pcks_share):
-        self.pcks_share_list[index] = pcks_share.decode()
+        self.pcks_share_list[index] = pcks_share
         self.flag_client_model_uploaded_dict[index] = True
 
 
@@ -64,7 +64,7 @@ class FedAVGAggregator(object):
 
     def add_enc_model_params(self, index, model_params, sample_num):
         # enc_model_list = [None]*self.worker_num
-        self.enc_model_list[index] = model_params.decode()
+        self.enc_model_list[index] = model_params
         self.flag_client_model_uploaded_dict[index] = True
         self.sample_num_dict[index] = sample_num
 
@@ -170,7 +170,9 @@ class FedAVGAggregator(object):
             # test on test dataset
             test_acc = sum(test_tot_corrects) / sum(test_num_samples)
             test_loss = sum(test_losses) / sum(test_num_samples)
+            '''
             wandb.log({"Test/Acc": test_acc, "round": round_idx})
             wandb.log({"Test/Loss": test_loss, "round": round_idx})
+            '''
             stats = {'test_acc': test_acc, 'test_loss': test_loss}
             logging.info(stats)

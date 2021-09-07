@@ -12,7 +12,8 @@ import (
     //"net"
     //"os"
     //"strconv"
-    "strings"
+    //"strings"
+    "unsafe"
     //"time"
 )
 
@@ -27,7 +28,7 @@ type party struct {
 
 var encInput []*ckks.Ciphertext
 //export encryptMsg
-func encryptMsg(inputs []float64, cpkString string, shamirShareString string, robust bool, logDegree uint64, scale float64) (encInput_cstring *C.char) {
+func encryptMsg(inputs []float64, cpk []uint64, shamirShare []uint64, robust bool, logDegree uint64, scale float64, numPeers int) (encInputList uintptr, numPieces int) {
     var ringPrime uint64 = 0x10000000001d0001
     var ringPrimeP uint64 = 0xfffffffffffc001
     moduli := &ckks.Moduli{Qi: []uint64{ringPrime}, Pi: []uint64{ringPrimeP}}
@@ -37,23 +38,21 @@ func encryptMsg(inputs []float64, cpkString string, shamirShareString string, ro
     if err != nil {
         panic(err)
     }
-    //fmt.Println("encryptMsg")
-    //fmt.Println("logDegree",logDegree)
-    //fmt.Println("scale",scale)
     ///////// Ring for the common reference polynomials sampling
     ringQP, _ := ring.NewRing(params.N(), append(params.Qi(), params.Pi()...))
     ///////// Common reference polynomial generator that uses the PRNG
     //pcks := dckks.NewPCKSProtocol(params, 3.19)
     ///////// generate evaluation points for secret sharing
-
+    shamirShareArray := unsqueezedArray(shamirShare,2)
     ///////// create the party object and setup keys
     pi := &party{}
     pi.shamirShare = ringQP.NewPoly()
-    pi.shamirShare.SetCoefficients(polyCoeffsDecode(shamirShareString))
+    pi.shamirShare.SetCoefficients(shamirShareArray)
     ///////// Create party, and allocate the memory for all the shares that the protocols will need
     // creating inputs
-    numPieces := 0
+    numPieces = 0
     inputLength := len(inputs)
+    //fmt.Println("input last 100",inputs[inputLength-100:inputLength])
     //fmt.Println("input length",inputLength)
     packSize := 2 * int(params.Slots())
     if inputLength%packSize == 0 {
@@ -81,18 +80,27 @@ func encryptMsg(inputs []float64, cpkString string, shamirShareString string, ro
     }
     pi.pcksShare = make([]dckks.PCKSShare, numPieces)
     /// set the collective public key
-    itemsString := strings.Split(cpkString, "/")
-    itemsString = itemsString[0 : len(itemsString)-1]
-    if len(itemsString) != 2 {
-        fmt.Println("Collective Public Key error")
-        return
-    }
+    cpk_unsqueezed := unsqueezedArray(cpk,2)
     var itemsPoly [2]*ring.Poly
     for counter := range itemsPoly {
-        tmp := polyCoeffsDecode(itemsString[counter])
+        tmp := unsqueezedArray(cpk_unsqueezed[counter],2)
         itemsPoly[counter] = ringQP.NewPoly()
         itemsPoly[counter].SetCoefficients(tmp)
     }
+
+    //itemsString := strings.Split(cpk, "/")
+    //itemsString = itemsString[0 : len(itemsString)-1]
+    //if len(itemsString) != 2 {
+    //    fmt.Println("Collective Public Key error")
+    //    return
+    //}
+    //var itemsPoly [2]*ring.Poly
+   // for counter := range itemsPoly {
+    //    tmp := polyCoeffsDecode(itemsString[counter])
+    //    itemsPoly[counter] = ringQP.NewPoly()
+    //    itemsPoly[counter].SetCoefficients(tmp)
+    //}
+
     pk := ckks.NewPublicKey(params)
     pk.Set(itemsPoly)
     //fmt.Println("Public key installed")
@@ -110,25 +118,30 @@ func encryptMsg(inputs []float64, cpkString string, shamirShareString string, ro
         encryptor.Encrypt(pt, encInput[pieceCounter])
     }
 
-    encInputStr := ""
+    encInputArray  := make([][]uint64,numPieces)
     for idx := range encInput {
+        encinput := make([][]uint64, len(encInput[idx].Value()))
         for ctPolyCounter := range encInput[idx].Value(){
-            encInputStr += polyCoeffsEncode(encInput[idx].Value()[ctPolyCounter].Coeffs) + "/"
+            encinput[ctPolyCounter] = squeezedArray(encInput[idx].Value()[ctPolyCounter].Coeffs)
         }
-        encInputStr += ":"
-        //encInputStr += fmt.Sprintf("%f", encInput[idx]) + " "
+        encInputArray[idx] = squeezedArray(encinput)
     }
-    encInputStr += "\n"
+    squeezed_encInputArrayLength := numPieces* len(encInputArray[0])
+    squeezed_encInputArray := make([]uint64, squeezed_encInputArrayLength)
+    squeezed_encInputArray = squeezedArray(encInputArray)
+    fmt.Println("squeezed_encInputArray",squeezed_encInputArray[squeezed_encInputArrayLength-2:])
+    encInputList = uintptr(unsafe.Pointer(&squeezed_encInputArray[0]))
 
-    encInput_cstring = C.CString(encInputStr)
 
     return
 }
 
 //export genPCKSShare
-func genPCKSShare(enc_aggr_model string, TPK string,shamirShareString string, decryptionCoefficient uint64,inputLength int,robust bool, logDegree uint64, scale float64)(res *C.char){
+func genPCKSShare(enc_aggr_model []uint64, TPK []uint64,shamirShareString []uint64,numPeers int,  decryptionCoefficient uint64,inputLength int,robust bool, logDegree uint64, scale float64)(res uintptr){
     var ringPrime uint64 = 0x10000000001d0001
     var ringPrimeP uint64 = 0xfffffffffffc001
+    //fmt.Println("enc_aggr_model",enc_aggr_model[0:10])
+    //fmt.Println("shamirShareString",shamirShareString[0:10])
     moduli := &ckks.Moduli{Qi: []uint64{ringPrime}, Pi: []uint64{ringPrimeP}}
 	params, err := ckks.NewParametersFromModuli(logDegree, moduli)
 	params.SetScale(scale)
@@ -136,12 +149,6 @@ func genPCKSShare(enc_aggr_model string, TPK string,shamirShareString string, de
 	if err != nil {
 		panic(err)
 	}
-    //fmt.Println("genPCKSShair")
-    //fmt.Println("inputLength",inputLength)
-   // fmt.Println("dc",decryptionCoefficient)
-    //fmt.Println("logDegree",logDegree)
-    //fmt.Println("scale",scale)
-    //inputLength = 7850
     numPieces := 0
 	//inputLength := len(inputs)
 	packSize := 2 * int(params.Slots())
@@ -157,18 +164,18 @@ func genPCKSShare(enc_aggr_model string, TPK string,shamirShareString string, de
 
     pi := &party{}
     pi.shamirShare = ringQP.NewPoly()
-	pi.shamirShare.SetCoefficients(polyCoeffsDecode(shamirShareString))
-    pieceArr := strings.Split(enc_aggr_model, ":")
-	pieceArr = pieceArr[0 : len(pieceArr)-1]
+	pi.shamirShare.SetCoefficients(unsqueezedArray(shamirShareString, 2))
+
+    pieceArr := unsqueezedArray(enc_aggr_model, numPieces)
 	encResult := make([]*ckks.Ciphertext, numPieces)
 	for pieceCounter := range pieceArr {
         message := pieceArr[pieceCounter]
-		polyCoeffsStringArr := strings.Split(message, "/")
-		polyCoeffsStringArr = polyCoeffsStringArr[0 : len(polyCoeffsStringArr)-1]
-		ctContents := make([]*ring.Poly, len(polyCoeffsStringArr))
+		polyCoeffsArr := unsqueezedArray(message,2)
+
+		ctContents := make([]*ring.Poly, len(polyCoeffsArr))
 		for ctContentCounter := range ctContents {
 			ctContents[ctContentCounter] = ring.NewPoly(params.N(), params.MaxLevel()+1)
-			ctContents[ctContentCounter].SetCoefficients(polyCoeffsDecode(polyCoeffsStringArr[ctContentCounter]))
+			ctContents[ctContentCounter].SetCoefficients(unsqueezedArray(polyCoeffsArr[ctContentCounter],1))
 		}
 		encResult[pieceCounter] = ckks.NewCiphertext(params, 1, params.MaxLevel(), params.Scale())
 		encResult[pieceCounter].SetValue(ctContents)
@@ -176,15 +183,16 @@ func genPCKSShare(enc_aggr_model string, TPK string,shamirShareString string, de
 	}
 
 
-    itemsString := strings.Split(TPK, "/")
-		itemsString = itemsString[0 : len(itemsString)-1]
-		if len(itemsString) != 2 {
+    //itemsString := strings.Split(TPK, "/")
+    //		itemsString = itemsString[0 : len(itemsString)-1]
+    tpkArray := unsqueezedArray(TPK,2)
+		if len(tpkArray) != 2 {
 			//fmt.Println("Target Public Key error")
 			return
 		}
 		var itemsPoly [2]*ring.Poly
 		for counter := range itemsPoly {
-			tmp := polyCoeffsDecode(itemsString[counter])
+			tmp := unsqueezedArray(tpkArray[counter],2)
 			itemsPoly[counter] = ringQP.NewPoly()
 			itemsPoly[counter].SetCoefficients(tmp)
 		}
@@ -205,16 +213,24 @@ func genPCKSShare(enc_aggr_model string, TPK string,shamirShareString string, de
 				pcks.GenShare(pi.shamirShare, tpk, encResult[pieceCounter], pi.pcksShare[pieceCounter])
 			}
 		}
-        toSendString := ""
+        pcksShareList := make([][]uint64,numPieces)
 		for pieceCounter := range pi.pcksShare {
+            pckstmp := make([][]uint64,numPeers)
 			for i := range pi.pcksShare[pieceCounter] {
-				coeffsString := polyCoeffsEncode(pi.pcksShare[pieceCounter][i].Coeffs)
-				toSendString += coeffsString + "/"
+				pckstmp[i] = squeezedArray(pi.pcksShare[pieceCounter][i].Coeffs)
 			}
-			toSendString += ":"
+			pcksShareList[pieceCounter] = squeezedArray(pckstmp)
 		}
-		toSendString += "\n"
-    res = C.CString(toSendString)
-    return
+        squeezedpcksShareListLength := numPieces* len(pcksShareList[0])
+      //  fmt.Println("pcks length", squeezedpcksShareListLength)
+        squeezedpcksShareList := make([]uint64,squeezedpcksShareListLength)
+        squeezedpcksShareList = squeezedArray(pcksShareList)
+
+    fmt.Println("squeezedpcksShareList",squeezedpcksShareList[squeezedpcksShareListLength-2:])
+
+    res = uintptr(unsafe.Pointer(&squeezedpcksShareList[0]))
+
+
+  return
 
 }
