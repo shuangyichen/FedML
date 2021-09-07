@@ -110,7 +110,9 @@ class FedAVGClientManager(ClientManager):
 
     def __train(self):
         logging.info("#######training########### round_id = %d" % self.round_idx)
+        comp_init = time.time()
         weights, local_sample_num = self.trainer.train(self.round_idx)
+        print("Computation time", time.time()-comp_init)
         #weights = np.ones((self.params_count,1))
         #print("non-encryped weights last 10", weights[self.params_count-10:self.params_count])
         enc_weights, self.numPieces= self.encrypt(weights.reshape(-1))
