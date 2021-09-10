@@ -71,7 +71,7 @@ lib.genTPK.argtypes = [c_ulonglong, c_double]
 lib.genTPK.restype = genTPK_return
 lib.genPCKSShare.argtypes = [GoSliceuint64, GoSliceuint64, GoSliceuint64, c_longlong,c_ulonglong, c_ulonglong,c_ubyte,c_ulonglong, c_double]
 lib.genPCKSShare.restype = POINTER(c_ulonglong)
-lib.decrypt.argtypes = [GoSliceuint64, GoSliceuint64, GoSliceuint64, c_ulonglong, c_double, c_ulonglong, c_longlong ]
+lib.decrypt.argtypes = [GoString, GoSliceuint64, GoSliceuint64, GoSliceuint64, c_ulonglong, c_double, c_ulonglong, c_longlong ]
 lib.decrypt.restype = POINTER(c_double)
 lib.genShamirShareString_robust.argtypes = [GoSliceuint64, c_longlong, c_ulonglong, c_double]
 lib.genShamirShareString_robust.restype = POINTER(c_ulonglong)
@@ -87,9 +87,10 @@ def genShamirShareString_robust(shamirShare, numPeers, logDegree, scale):
     res = lib.genShamirShareString_robust(uint64convertToGoSlice_(shamirShare), numPeers, logDegree, 2.**scale)
     return np.ctypeslib.as_array(res,shape = (16384,1))
 
-def decrypt(tsk,pcksShare, encResult, logDegree, scale, inputLength, numPeers):
+def decrypt(client_chosen,tsk,pcksShare, encResult, logDegree, scale, inputLength, numPeers):
     init = time.time()
-    res = lib.decrypt(uint64convertToGoSlice(tsk),uint64convertToGoSlice(pcksShare), uint64convertToGoSlice(encResult), logDegree, 2.**scale, inputLength, numPeers)
+    client_chosen = client_chosen.encode()
+    res = lib.decrypt(GoString(client_chosen,len(client_chosen)),uint64convertToGoSlice(tsk),uint64convertToGoSlice(pcksShare), uint64convertToGoSlice(encResult), logDegree, 2.**scale, inputLength, numPeers)
     print("decryption time", time.time()-init)
     output = np.ctypeslib.as_array(res,shape = (1,inputLength))
     return output

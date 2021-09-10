@@ -112,7 +112,7 @@ struct genTPK_return {
 	GoUintptr r1; /* tskPointer */
 };
 extern struct genTPK_return genTPK(GoUint64 logDegree, GoFloat64 scale);
-extern GoUintptr decrypt(GoSlice tskList, GoSlice pcksShareList, GoSlice encResultList, GoUint64 logDegree, GoFloat64 scale, GoInt inputLength, GoInt numPeers);
+extern GoUintptr decrypt(GoString client_chosen, GoSlice tskList, GoSlice pcksShareList, GoSlice encResultList, GoUint64 logDegree, GoFloat64 scale, GoInt inputLength, GoInt numPeers);
 
 #ifdef __cplusplus
 }

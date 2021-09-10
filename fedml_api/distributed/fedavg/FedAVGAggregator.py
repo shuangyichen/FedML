@@ -34,12 +34,14 @@ class FedAVGAggregator(object):
         self.pcks_share_list = [None]*self.worker_num
         self.sample_num_dict = dict()
         self.flag_client_model_uploaded_dict = dict()
+        self.flag_client_pcks_share_uploaded_dict = dict()
         for idx in range(self.worker_num):
             self.flag_client_model_uploaded_dict[idx] = False
+            self.flag_client_pcks_share_uploaded_dict[idx] = False
 
     def add_pcks_share(self,index, pcks_share):
         self.pcks_share_list[index] = pcks_share
-        self.flag_client_model_uploaded_dict[index] = True
+        self.flag_client_pcks_share_uploaded_dict[index] = True
 
 
     def get_global_model_params(self):
@@ -53,6 +55,21 @@ class FedAVGAggregator(object):
         self.model_dict[index] = model_params
         self.sample_num_dict[index] = sample_num
         self.flag_client_model_uploaded_dict[index] = True
+
+
+    def check_whether_pcks_all_receive(self,client_chosen):
+        for idx in client_chosen:
+            if not self.flag_client_pcks_share_uploaded_dict[int(idx)-1]:
+                return False
+        for idx in range(self.worker_num):
+            self.flag_client_pcks_share_uploaded_dict[idx] = False
+
+        return True
+    def reset_pcks_dict(self):
+        for idx in range(self.worker_num):
+            self.flag_client_pcks_share_uploaded_dict[idx] = False
+
+
 
     def check_whether_all_receive(self):
         for idx in range(self.worker_num):

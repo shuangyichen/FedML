@@ -26,6 +26,7 @@ class FedAVGServerManager(ServerManager):
         self.resiliency = resiliency
         self.round_idx = 0
         self.worker_num = worker_num
+        self.k = args.client_num_per_round
         self.log_degree = log_degree
         self.log_scale = log_scale
         self.flag_client_uploaded_dict = dict()
@@ -55,7 +56,7 @@ class FedAVGServerManager(ServerManager):
     def send_init_msg(self):
         # sampling clients
         client_indexes = self.aggregator.client_sampling(self.round_idx, self.args.client_num_in_total,
-                                                         self.args.client_num_per_round)
+                                                         self.worker_num)
         global_model_params = self.aggregator.get_global_model_params()
         if self.args.is_mobile == 1:
             global_model_params = transform_tensor_to_list(global_model_params)
@@ -78,12 +79,13 @@ class FedAVGServerManager(ServerManager):
         #print("receive pcks shair from client",sender_id)
         pcks_share = msg_params.get(MyMessage.MSG_ARG_KEY_PCKS_SHARE)
         self.aggregator.add_pcks_share(sender_id-1, pcks_share)
-        b_all_received = self.aggregator.check_whether_all_receive()
-        if b_all_received:
+        p_all_received = self.aggregator.check_whether_pcks_all_receive(self.client_chosen)
+        if p_all_received:
             pcks_share_list = []
             for pcks_share in self.aggregator.pcks_share_list:
-                pcks_share_list += pcks_share
-            res = decrypt(self.tsk,pcks_share_list,self.aggr_enc_model_list,self.log_degree,self.log_scale,self.params_count,self.worker_num)
+                if pcks_share is not None:
+                    pcks_share_list += pcks_share
+            res = decrypt(','.join(self.client_chosen),self.tsk,pcks_share_list,self.aggr_enc_model_list,self.log_degree,self.log_scale,self.params_count,self.worker_num)
             res1 = res.tolist()
             #model_weights = self.model_weights.tolist()
 
@@ -116,7 +118,7 @@ class FedAVGServerManager(ServerManager):
             self.init_time = time.time()
             self.round_idx += 1
             client_indexes = self.aggregator.client_sampling(self.round_idx, self.args.client_num_in_total,
-                                                                 self.args.client_num_per_round)
+                                                                 self.worker_num)
             self.if_check_client_status = True
             #model_params = np.zeros((1,self.params_count))
             for receiver_id in range(1, self.size):
@@ -132,19 +134,19 @@ class FedAVGServerManager(ServerManager):
         if self.if_check_client_status:
             self.liveness_status[sender_id-1] = liveness_status
             self.flag_client_uploaded_dict[sender_id-1] = True
-            partial_received, client_chosen = self.check_whether_partial_receive()
+            partial_received, self.client_chosen = self.check_whether_partial_receive()
 
             if partial_received:
                 self.if_check_client_status = False
                 if self.robust:
                     tpk,tsk= genTPK(self.log_degree,self.log_scale)
                     self.tsk = tsk.tolist()
-                    client_chosen_list = ','.join(client_chosen)
+                    client_chosen_list = ','.join(self.client_chosen)
                     res = genDecryptionCoefficients(client_chosen_list)
                     DecryptionCoefficients = res.decode()
                     DCoeff = DecryptionCoefficients.split('\n')[0]
                     DCoeff = DCoeff.split(',')
-                    for i in range(len(client_chosen)):
+                    for i in range(len(self.client_chosen)):
                         Decryption_info = DCoeff[i].split(':')
                         receive_id = int(Decryption_info[0])
                         decryption_coeffi = int(Decryption_info[1])
@@ -176,12 +178,11 @@ class FedAVGServerManager(ServerManager):
             lenth = len(self.aggr_enc_model_list)
             #print("self.aggr_enc_model_list",self.aggr_enc_model_list[lenth-10:lenth])
 
-            client_indexes = self.aggregator.client_sampling(self.round_idx, self.args.client_num_in_total,
-                                                                 self.args.client_num_per_round)
+            #client_indexes = self.aggregator.client_sampling(self.round_idx, self.args.client_num_in_total,
+             #                                                    self.args.client_num_per_round)
 
             for receiver_id in range(1, self.size):
-                self.send_message_aggregated_encrypted_model_to_client(receiver_id, self.aggr_enc_model_list,
-                                                       client_indexes[receiver_id - 1])
+                self.send_message_aggregated_encrypted_model_to_client(receiver_id, self.aggr_enc_model_list)
 
 
 
@@ -195,11 +196,11 @@ class FedAVGServerManager(ServerManager):
         message.add_params(MyMessage.MSG_ARG_KEY_TPK,tpk)
         self.send_message(message)
 
-    def send_message_aggregated_encrypted_model_to_client(self, receive_id, aggr_enc_model_params, client_index):
+    def send_message_aggregated_encrypted_model_to_client(self, receive_id, aggr_enc_model_params):
         #logging.info("send_message_sync_model_to_client. receive_id = %d" % receive_id)
         message = Message(MyMessage.MSG_TYPE_S2C_SEND_AGGR_ENCRYPTED_MODEL, self.get_sender_id(), receive_id)
         message.add_params(MyMessage.MSG_ARG_KEY_ENCRYPTED_MODEL_PARAMS, aggr_enc_model_params)
-        message.add_params(MyMessage.MSG_ARG_KEY_CLIENT_INDEX, str(client_index))
+        #message.add_params(MyMessage.MSG_ARG_KEY_CLIENT_INDEX, str(client_index))
         self.send_message(message)
 
 

@@ -14,12 +14,12 @@ CLIENT_OPTIMIZER=${11}
 CI=${12}
 ROBUST=${13}
 
-PROCESS_NUM=`expr $WORKER_NUM + 1`
+PROCESS_NUM=`expr $CLIENT_NUM + 1`
 echo $PROCESS_NUM
 
 #hostname > mpi_host_file
 
-mpirun -np $PROCESS_NUM -hostfile ./mpi_host_file python3 ./main_fedavg.py \
+mpirun -np $PROCESS_NUM python3 ./main_fedavg.py \
   --model $MODEL \
   --dataset $DATASET \
   --data_dir $DATA_DIR \
