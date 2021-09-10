@@ -120,6 +120,12 @@ def add_args(parser):
 
     parser.add_argument('--robust', type=int,
                         help='ROBUST')
+
+    parser.add_argument('--compression', type=int,help='COMPRESSION')
+
+    parser.add_argument('--compression_rate',type=float, help='compression_rate')
+
+    parser.add_argument('--compression_alpha', type=float, help='compression_alpha')
     args = parser.parse_args()
     return args
 

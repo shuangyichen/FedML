@@ -12,7 +12,7 @@ except ImportError:
     from FedML.fedml_core.distributed.client.client_manager import ClientManager
     from FedML.fedml_core.distributed.communication.message import Message
 from .message_define import MyMessage
-from .utils import transform_dict_list, transform_list_to_tensor, post_complete_message_to_sweep_process
+from .utils import random_matrix,transform_dict_list, transform_list_to_tensor, post_complete_message_to_sweep_process
 from .GoWrappers import *
 import numpy as np
 
@@ -38,7 +38,14 @@ class FedAVGClientManager(ClientManager):
         self.flag_shamirshare_uploaded_dict = dict()
         for idx in range(self.worker_num):
             self.flag_shamirshare_uploaded_dict[idx] = False
-
+        self.compression = args.compression
+        self.rate = args.compression_rate
+        if self.compression == 0:
+            self.rate = 1.0
+        self.samples = int(self.params_count / self.rate)
+        self.error = np.zeros((self.params_count,1))
+        self.alpha = args.compression_alpha
+        self.beta = 1 / self.alpha / (self.rate + 1 + 1 / self.alpha)
 
     def register_message_receive_handlers(self):
         self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_PUBLIC_KEY_TO_CLIENT,self.handle_message_public_key_from_server)
@@ -115,7 +122,18 @@ class FedAVGClientManager(ClientManager):
         print("Computation time", time.time()-comp_init)
         #weights = np.ones((self.params_count,1))
         #print("non-encryped weights last 10", weights[self.params_count-10:self.params_count])
-        enc_weights, self.numPieces= self.encrypt(weights.reshape(-1))
+
+        weights = weights.reshape(-1,1)
+        error_compensated = weights + self.error
+        if self.compression==1:
+            phi = random_matrix(self.alpha/2/self.samples, self.samples,self.params_count,seed = self.round_idx)
+            compressed = self.beta * phi.dot(error_compensated)
+            recov = phi.transpose().dot(compressed)
+            self.error = error_compensated - recov
+        else:
+            compressed = weights
+
+        enc_weights, self.numPieces= self.encrypt(compressed.reshape(-1))
 
         self.send_model_to_server(0, enc_weights.tolist(), local_sample_num)
 

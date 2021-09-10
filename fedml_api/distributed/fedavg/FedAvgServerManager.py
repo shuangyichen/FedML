@@ -3,7 +3,7 @@ import os, signal
 import sys
 
 from .message_define import MyMessage
-from .utils import transform_tensor_to_list, post_complete_message_to_sweep_process
+from .utils import random_matrix, transform_tensor_to_list, post_complete_message_to_sweep_process
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../../../")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../../../../FedML")))
@@ -38,7 +38,10 @@ class FedAVGServerManager(ServerManager):
         self.count_times = 0
         self.robust = robust
         self.if_check_client_status = True
-
+        self.compression = args.compression
+        self.rate = args.compression_rate
+        self.alpha = args.compression_alpha
+        self.samples = int(self.params_count / self.rate)
 
         for idx in range(self.worker_num):
             self.flag_client_uploaded_dict[idx] = False
@@ -98,6 +101,10 @@ class FedAVGServerManager(ServerManager):
 
 
             res2 = np.array(res1).reshape(-1, 1)/self.worker_num
+
+            if self.compression == 1:
+                phi = random_matrix(self.alpha/2/self.samples, self.samples, self.params_count, seed = self.round_idx)
+                res2 = phi.transpose().dot(res2)
             #print("res", res[0:5])
             model_params = self.aggregator.get_global_model_params()
 
@@ -120,6 +127,7 @@ class FedAVGServerManager(ServerManager):
             client_indexes = self.aggregator.client_sampling(self.round_idx, self.args.client_num_in_total,
                                                                  self.worker_num)
             self.if_check_client_status = True
+            self.aggregator.reset_pcks_dict()
             #model_params = np.zeros((1,self.params_count))
             for receiver_id in range(1, self.size):
 

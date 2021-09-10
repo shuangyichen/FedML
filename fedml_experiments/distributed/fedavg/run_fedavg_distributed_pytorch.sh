@@ -13,6 +13,9 @@ DATA_DIR=${10}
 CLIENT_OPTIMIZER=${11}
 CI=${12}
 ROBUST=${13}
+COMPRESSION=${14}
+COMPRESSION_RATE=${15}
+COMPRESSION_ALPHA=${16}
 
 PROCESS_NUM=`expr $CLIENT_NUM + 1`
 echo $PROCESS_NUM
@@ -32,4 +35,7 @@ mpirun -np $PROCESS_NUM -hostfile ./mpi_host_file python3 ./main_fedavg.py \
   --batch_size $BATCH_SIZE \
   --lr $LR \
   --ci $CI \
-  --robust $ROBUST
+  --robust $ROBUST \
+  --compression $COMPRESSION \
+  --compression_rate $COMPRESSION_RATE \
+  --compression_alpha $COMPRESSION_ALPHA
