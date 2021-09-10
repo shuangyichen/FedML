@@ -88,7 +88,7 @@ class FedAVGServerManager(ServerManager):
             for pcks_share in self.aggregator.pcks_share_list:
                 if pcks_share is not None:
                     pcks_share_list += pcks_share
-            res = decrypt(','.join(self.client_chosen),self.tsk,pcks_share_list,self.aggr_enc_model_list,self.log_degree,self.log_scale,self.params_count,self.worker_num)
+            res = decrypt(','.join(self.client_chosen),self.tsk,pcks_share_list,self.aggr_enc_model_list,self.log_degree,self.log_scale,self.samples,self.worker_num)
             res1 = res.tolist()
             #model_weights = self.model_weights.tolist()
 
@@ -181,7 +181,7 @@ class FedAVGServerManager(ServerManager):
             encModelList = []
             for i,model in enumerate(self.aggregator.enc_model_list):
                 encModelList += model
-            aggr_enc_model_list = aggregateEncrypted(encModelList,self.worker_num,self.log_degree,self.log_scale,self.params_count)
+            aggr_enc_model_list = aggregateEncrypted(encModelList,self.worker_num,self.log_degree,self.log_scale,self.samples)
             self.aggr_enc_model_list = aggr_enc_model_list.tolist()
             lenth = len(self.aggr_enc_model_list)
             #print("self.aggr_enc_model_list",self.aggr_enc_model_list[lenth-10:lenth])
