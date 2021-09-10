@@ -216,21 +216,21 @@ func decrypt(client_chosen string,tskList []uint64, pcksShareList []uint64, encR
         encResult[pieceCounter] = ckks.NewCiphertext(params, 1, params.MaxLevel(), params.Scale())
         encResult[pieceCounter].SetValue(ctContents)
     }
-    clients := strings.Split(client_chosen,",")
+    //clients := strings.Split(client_chosen,",")
     pcksShares := make([][]dckks.PCKSShare, numPeers)
     pcksCombined := make([]dckks.PCKSShare, numPieces)
 	for i := range pcksCombined {
 		pcksCombined[i] = pcks.AllocateShares(params.MaxLevel())
 	}
     pcksSharesArray := unsqueezedArray(pcksShareList,numPeers)
-	//for peerIdx := range pcksShares {
-    for Idx:= range clients{
+	for peerIdx := range pcksShares {
+    //for Idx:= range clients{
 		//if decryptionParticipation[peerIdx] == 1 {
-			peerIdx, err := strconv.Atoi(clients[Idx])
+			//peerIdx, err := strconv.Atoi(clients[Idx])
             if err != nil {
                 panic(err)
             }
-            peerIdx = peerIdx-1
+            //peerIdx = peerIdx-1
 
             pcksShares[peerIdx] = make([]dckks.PCKSShare, numPieces)
             pcksSharePiece  := pcksSharesArray[peerIdx]

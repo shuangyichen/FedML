@@ -9,6 +9,7 @@ class MyMessage(object):
     MSG_TYPE_S2C_SEND_AGGR_ENCRYPTED_MODEL = 5
     MSG_TYPE_S2C_PUBLIC_KEY_TO_CLIENT = 9
     MSG_TYPE_S2C_SEND_DECRYPTION_INFO = 12
+    MSG_TYPE_S2C_ONE_ITER_DONE_CONFIG = 15
     # client to server
     MSG_TYPE_C2S_SEND_MODEL_TO_SERVER = 3
     MSG_TYPE_C2S_SEND_STATS_TO_SERVER = 4
@@ -17,9 +18,9 @@ class MyMessage(object):
     MSG_TYPE_C2S_SEND_CPK_TO_SERVER = 8
     MSG_TYPE_C2S_PHASE1_DONE = 10
     MSG_TYPE_C2S_SEND_LIVENESS_STATUS = 11
-    MSG_TYPE_C2S_PCKS_SHARE = 12
+    MSG_TYPE_C2S_PCKS_SHARE = 13
     # client to client
-    MSG_TYPE_C2C_SEND_PROCESSED_SS = 13
+    MSG_TYPE_C2C_SEND_PROCESSED_SS = 14
 
 
     MSG_ARG_KEY_TYPE = "msg_type"
@@ -43,7 +44,7 @@ class MyMessage(object):
     MSG_ARG_KEY_DECRYPTION_PARTICIPATION = "decryption participation"
     MSG_ARG_KEY_DECRYPTION_COEFFI = "decryption coeff"
     MSG_ARG_KEY_PCKS_SHARE = "pcks shair"
-
+    MSG_ARG_KEY_ROUND_NUM = "round num"
 
     MSG_ARG_KEY_TRAIN_CORRECT = "train_correct"
     MSG_ARG_KEY_TRAIN_ERROR = "train_error"

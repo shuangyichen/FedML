@@ -20,6 +20,7 @@ class FedAVGClientManager(ClientManager):
     def __init__(self,trainer,worker_num,robust,log_degree, log_scale, resiliency,params_count,args, comm, rank, size, backend="MPI"):
         super().__init__(args, comm, rank, size, backend)
         self.worker_num = worker_num
+        self.k = args.client_num_per_round
         self.num_rounds = args.comm_round
         self.robust = robust
         self.status = 1
@@ -54,7 +55,11 @@ class FedAVGClientManager(ClientManager):
         self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_SEND_DECRYPTION_INFO,self.handle_message_decryption_info_from_server)
         self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_SYNC_MODEL_TO_CLIENT,self.handle_message_receive_model_from_server)
         self.register_message_receive_handler(MyMessage.MSG_TYPE_C2C_SEND_PROCESSED_SS,self.handle_message_shamirshares)
+        self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_ONE_ITER_DONE_CONFIG, self.handle_message_one_iter_done)
 
+    def handle_message_one_iter_done(self, msg_params):
+        self.round_idx = msg_params.get(MyMessage.MSG_ARG_KEY_ROUND_NUM)
+        self.send_pk_to_server()
 
     def run(self):
         super().run()
@@ -88,7 +93,7 @@ class FedAVGClientManager(ClientManager):
 
         #w = transform_dict_list(model_params)
 
-        self.round_idx += 1
+        #self.round_idx += 1
         self.__train()
         if self.round_idx == self.num_rounds - 1:
         #    post_complete_message_to_sweep_process(self.args)
@@ -104,7 +109,7 @@ class FedAVGClientManager(ClientManager):
 
         self.trainer.update_model(global_model_params)
         self.trainer.update_dataset(int(client_index))
-        self.round_idx = 0
+        #self.round_idx = 0
         self.__train()
 
     def check_whether_all_receive(self):
@@ -142,7 +147,7 @@ class FedAVGClientManager(ClientManager):
         decryptionCoefficients = msg_params.get(MyMessage.MSG_ARG_KEY_DECRYPTION_COEFFI)
         if decryptionParticipation == 1:
             tpk = msg_params.get(MyMessage.MSG_ARG_KEY_TPK)
-            PCKSShare = genPCKSShare(self.enc_aggregated_model,tpk,self.SS,self.worker_num, decryptionCoefficients, self.samples, self.robust, self.log_degree, self.log_scale,self.numPieces)
+            PCKSShare = genPCKSShare(self.enc_aggregated_model,tpk,self.SS,self.k, decryptionCoefficients, self.samples, self.robust, self.log_degree, self.log_scale,self.numPieces)
             self.send_PCKS_share_to_server(PCKSShare.tolist())
 
 
@@ -193,7 +198,7 @@ class FedAVGClientManager(ClientManager):
     def send_pk_to_server(self):
         self.phase1init = time.time()
         #CPK = genCollectiveKeyShare_not_robust(self.worker_num,self.log_degree,self.log_scale, self.resiliency)
-        CPK, SS = genCollectiveKeyShare_not_robust(self.worker_num,self.log_degree,self.log_scale, self.resiliency)
+        CPK, SS = genCollectiveKeyShare_not_robust(self.k,self.log_degree,self.log_scale, self.resiliency)
         self.SS = SS.tolist()
         self.send_message_CPK_to_server(0,CPK.tolist())
 
@@ -218,5 +223,5 @@ class FedAVGClientManager(ClientManager):
         self.send_message(message)
 
     def encrypt(self,weights):
-        ct = encrypt(weights.reshape(-1), self.pk, self.SS, self.robust,self.log_degree, self.log_scale, self.resiliency, self.worker_num)
+        ct = encrypt(weights.reshape(-1), self.pk, self.SS, self.robust,self.log_degree, self.log_scale, self.resiliency, self.k)
         return ct

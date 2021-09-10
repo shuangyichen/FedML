@@ -29,9 +29,9 @@ class FedAVGAggregator(object):
 
         self.worker_num = worker_num
         self.device = device
-        self.enc_model_list = [None]*self.worker_num
+        self.enc_model_list = dict()
         self.model_dict = dict()
-        self.pcks_share_list = [None]*self.worker_num
+        self.pcks_share_list = [None]* self.worker_num
         self.sample_num_dict = dict()
         self.flag_client_model_uploaded_dict = dict()
         self.flag_client_pcks_share_uploaded_dict = dict()
@@ -65,15 +65,18 @@ class FedAVGAggregator(object):
             self.flag_client_pcks_share_uploaded_dict[idx] = False
 
         return True
+
     def reset_pcks_dict(self):
+        self.pcks_share_list = [None]*self.worker_num
+        self.enc_model_list = dict()
         for idx in range(self.worker_num):
             self.flag_client_pcks_share_uploaded_dict[idx] = False
 
 
 
-    def check_whether_all_receive(self):
-        for idx in range(self.worker_num):
-            if not self.flag_client_model_uploaded_dict[idx]:
+    def check_whether_all_receive(self,client_chosen):
+        for idx in client_chosen:
+            if not self.flag_client_model_uploaded_dict[int(idx)-1]:
                 return False
         for idx in range(self.worker_num):
             self.flag_client_model_uploaded_dict[idx] = False

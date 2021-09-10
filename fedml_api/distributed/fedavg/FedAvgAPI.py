@@ -49,6 +49,7 @@ def init_server(args, device, comm, rank, size, model, param_num, train_data_num
 
 
     server_manager = FedAVGServerManager(worker_num,log_degree, log_scale,resiliency,robust,args, aggregator,param_num, comm, rank, size,backend)
+    server_manager.start()
     server_manager.run()
 
 
@@ -72,9 +73,11 @@ def init_client(args, device, comm, process_id, size, model, param_num, train_da
                             train_data_num, device, args, model_trainer)
 
     client_manager = FedAVGClientManager(trainer,worker_num,robust, log_degree, log_scale, resiliency,param_num, args,comm, process_id, size, args.backend)
+    '''
     if not robust:
         client_manager.send_pk_to_server()
     else:
         client_manager.send_SS()
+    '''
     client_manager.run()
 
