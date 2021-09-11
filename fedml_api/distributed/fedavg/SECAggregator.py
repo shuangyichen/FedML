@@ -1,4 +1,4 @@
-from socketIO_client import SocketIO, LoggingNamespace
+#from socketIO_client import SocketIO, LoggingNamespace
 from random import randrange
 import numpy as np
 from copy import deepcopy
@@ -49,9 +49,9 @@ class SecAggregator:
 		for each in keylist:
 			print(each)
 			if each<self.id:
-				wghts-=self.generate_weights((self.keys[each]**self.secretkey)%self.mod)
+				wghts-=self.generate_weights((self.keys[str(each)]**self.secretkey)%self.mod)
 			elif each>self.id:
-				wghts+=self.generate_weights((self.keys[each]**self.secretkey)%self.mod)
+				wghts+=self.generate_weights((self.keys[str(each)]**self.secretkey)%self.mod)
 		return -1*wghts
 	def private_secret(self):
 		return self.generate_weights(self.sndkey)

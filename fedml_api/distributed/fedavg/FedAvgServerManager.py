@@ -281,7 +281,7 @@ class FedAVGServerManager(ServerManager):
         self.respset.add(sender_id)
         #print("receive cpk from client",sender_id)
         CPK = msg_params.get(MyMessage.MSG_ARG_KEY_CPK)
-        self.CollectivePublicKey[str(sender_id)] = CPK
+        self.CollectivePublicKey[sender_id] = CPK
         self.flag_client_uploaded_dict[sender_id-1] = True
         all_received = self.check_whether_all_receive()
         if all_received:
