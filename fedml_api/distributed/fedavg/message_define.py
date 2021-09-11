@@ -9,6 +9,9 @@ class MyMessage(object):
     MSG_TYPE_S2C_SEND_AGGR_ENCRYPTED_MODEL = 5
     MSG_TYPE_S2C_PUBLIC_KEY_TO_CLIENT = 9
     MSG_TYPE_S2C_SEND_DECRYPTION_INFO = 12
+    MSG_TYPE_S2C_SEND_THEIR_SECRET_INFO = 14
+    MSG_TYPE_S2C_SEND_SECRET_INFO = 16
+    MSG_TYPE_S2C_SEND_INIT = 19
     # client to server
     MSG_TYPE_C2S_SEND_MODEL_TO_SERVER = 3
     MSG_TYPE_C2S_SEND_STATS_TO_SERVER = 4
@@ -17,15 +20,17 @@ class MyMessage(object):
     MSG_TYPE_C2S_SEND_CPK_TO_SERVER = 8
     MSG_TYPE_C2S_PHASE1_DONE = 10
     MSG_TYPE_C2S_SEND_LIVENESS_STATUS = 11
-    MSG_TYPE_C2S_PCKS_SHARE = 12
+    MSG_TYPE_C2S_PCKS_SHARE = 15
+    MSG_TYPE_C2S_SECRET = 17
+    MSG_TYPE_C2S_RVL_SECRET = 18
     # client to client
     MSG_TYPE_C2C_SEND_PROCESSED_SS = 13
 
-
+    MSG_ARG_KEY_SECRET_INFO = 'secret_info'
     MSG_ARG_KEY_TYPE = "msg_type"
     MSG_ARG_KEY_SENDER = "sender"
     MSG_ARG_KEY_RECEIVER = "receiver"
-
+    MSG_ARG_KEY_ABSENTJSON = "absent json"
     """
         message payload keywords definition
     """
@@ -42,7 +47,7 @@ class MyMessage(object):
     MSG_ARG_KEY_DECRYPTION_PARTICIPATION = "decryption participation"
     MSG_ARG_KEY_DECRYPTION_COEFFI = "decryption coeff"
     MSG_ARG_KEY_PCKS_SHARE = "pcks shair"
-
+    MSG_ARG_KEY_RVL_SECRET = "rvl secret"
 
     MSG_ARG_KEY_TRAIN_CORRECT = "train_correct"
     MSG_ARG_KEY_TRAIN_ERROR = "train_error"

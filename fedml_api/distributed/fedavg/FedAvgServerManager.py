@@ -17,7 +17,9 @@ from .GoWrappers import *
 import numpy as np
 import torch
 import time
-
+import codecs
+import json
+import pickle
 class FedAVGServerManager(ServerManager):
     def __init__(self,worker_num,log_degree, log_scale,resiliency,robust, args,aggregator,params_count,comm=None,rank=0, size=0,backend="MPI"):
         super().__init__(args, comm, rank, size, backend)
@@ -43,6 +45,12 @@ class FedAVGServerManager(ServerManager):
 
         for idx in range(self.worker_num):
             self.flag_client_uploaded_dict[idx] = False
+        self.aggregate = np.zeros((199658,1))
+        self.responses = 0
+        self.respset = set()
+        self.resplist = []
+        self.secretresp = 0
+        self.othersecretresp = 0
 
     def run(self):
         super().run()
@@ -77,6 +85,48 @@ class FedAVGServerManager(ServerManager):
         self.register_message_receive_handler(MyMessage.MSG_TYPE_C2S_SEND_ENC_MODEL_TO_SERVER,self.handle_message_receive_enc_model_from_client)
         self.register_message_receive_handler(MyMessage.MSG_TYPE_C2S_SEND_LIVENESS_STATUS,self.handle_message_receive_liveness_status_from_client)
         self.register_message_receive_handler(MyMessage.MSG_TYPE_C2S_PCKS_SHARE,self.handle_message_receive_pcks_share)
+        self.register_message_receive_handler(MyMessage.MSG_TYPE_C2S_SECRET, self.handle_message_secret)
+        self.register_message_receive_handler(MyMessage.MSG_TYPE_C2S_RVL_SECRET,self.handle_message_rvl_secret)
+
+
+    def handle_message_rvl_secret(self,msg_params):
+        rvl_secret = msg_params.get(MyMessage.MSG_ARG_KEY_RVL_SECRET)
+        self.aggregate+=self.weights_decoding(rvl_secret)
+        self.othersecretresp+=1
+        if self.secretresp==self.k and self.othersecretresp==self.k:
+            print("cost time", time.time()-self.init)
+            print("FINAL WEIGHTS rvl secret:",self.aggregate)
+            self.aggregate = np.zeros((199658,1))
+            self.responses = 0
+            self.respset = set()
+            self.resplist = []
+            self.secretresp = 0
+            self.othersecretresp = 0
+            self.send_init()
+
+
+    def send_init(self):
+        self.init = time.time()
+        for idx in range(self.worker_num):
+            message = Message(MyMessage.MSG_TYPE_S2C_SEND_INIT, self.get_sender_id(), idx+1)
+            #message.add_params(MyMessage.MSG_ARG_KEY_ABSENTJSON, absentkeyjson)
+            self.send_message(message)
+
+    def handle_message_secret(self,msg_params):
+        secret = msg_params.get(MyMessage.MSG_ARG_KEY_SECRET_INFO)
+        sender_id = msg_params.get(MyMessage.MSG_ARG_KEY_SENDER)
+        self.aggregate+=self.weights_decoding(secret)
+        self.secretresp+=1
+        if self.secretresp==self.k and self.othersecretresp==self.k:
+            print("cost time", time.time()-self.init)
+            print("FINAL WEIGHTS:",self.aggregate)
+            self.aggregate = np.zeros((199658,1))
+            self.responses = 0
+            self.respset = set()
+            self.resplist = []
+            self.secretresp = 0
+            self.othersecretresp = 0
+            self.send_init()
 
     def handle_message_receive_pcks_share(self,msg_params):
         sender_id = msg_params.get(MyMessage.MSG_ARG_KEY_SENDER)
@@ -160,6 +210,30 @@ class FedAVGServerManager(ServerManager):
         sender_id = msg_params.get(MyMessage.MSG_ARG_KEY_SENDER)
         #print("receive enc_model from client",sender_id)
         enc_model_params = msg_params.get(MyMessage.MSG_ARG_KEY_ENCRYPTED_MODEL_PARAMS)
+        if self.responses<self.k:
+            self.aggregate+=self.weights_decoding(enc_model_params)
+            self.responses+=1
+            self.respset.remove(sender_id)
+            self.resplist.append(sender_id)
+            self.send_secret(sender_id)
+        else:
+            self.responses+=1
+        if self.responses==self.k:
+            absentkeyjson = json.dumps(list(self.respset))
+            for rid in self.resplist:
+                self.send_their_secret(absentkeyjson,rid)
+
+
+    def send_their_secret(self,absentkeyjson, receive_id):
+        message = Message(MyMessage.MSG_TYPE_S2C_SEND_THEIR_SECRET_INFO, self.get_sender_id(), receive_id)
+        message.add_params(MyMessage.MSG_ARG_KEY_ABSENTJSON, absentkeyjson)
+        self.send_message(message)
+
+
+    def send_secret(self,receive_id):
+        message = Message(MyMessage.MSG_TYPE_S2C_SEND_SECRET_INFO, self.get_sender_id(), receive_id)
+        self.send_message(message)
+        '''
         local_sample_number = msg_params.get(MyMessage.MSG_ARG_KEY_NUM_SAMPLES)
         #self.aggregator.add_local_trained_result(sender_id - 1, enc_model_params, local_sample_number)
         self.aggregator.add_enc_model_params(sender_id - 1, enc_model_params, local_sample_number)
@@ -174,7 +248,7 @@ class FedAVGServerManager(ServerManager):
             for receiver_id in range(1, self.size):
                 self.send_message_aggregated_encrypted_model_to_client(receiver_id, self.aggr_enc_model_list)
 
-
+        '''
 
 
     def send_decryption_info(self,receive_id,decryptionParticipation,decryptionCoefficients,tpk):
@@ -204,12 +278,14 @@ class FedAVGServerManager(ServerManager):
 
     def handle_message_CPK_from_client(self,msg_params):
         sender_id = msg_params.get(MyMessage.MSG_ARG_KEY_SENDER)
+        self.respset.add(sender_id)
         #print("receive cpk from client",sender_id)
         CPK = msg_params.get(MyMessage.MSG_ARG_KEY_CPK)
-        self.CollectivePublicKey[sender_id-1] = CPK
+        self.CollectivePublicKey[str(sender_id)] = CPK
         self.flag_client_uploaded_dict[sender_id-1] = True
         all_received = self.check_whether_all_receive()
         if all_received:
+            '''
             collective_puclic_key = [None]*len(self.CollectivePublicKey)
             #print("length of cpk", len(collective_puclic_key))
             for i,key in enumerate(self.CollectivePublicKey.keys()):
@@ -218,7 +294,9 @@ class FedAVGServerManager(ServerManager):
             s = ','
             cpk = s.join(collective_puclic_key)
             res = genCollectivePK(cpk,self.worker_num,self.log_degree,self.log_scale)
-            self.send_pk_to_client(res)
+            '''
+            key_json = json.dumps(self.CollectivePublicKey)
+            self.send_pk_to_client(key_json)
 
 
     def send_pk_to_client(self,pk):
@@ -260,3 +338,10 @@ class FedAVGServerManager(ServerManager):
         for idx in range(self.worker_num):
             self.flag_client_uploaded_dict[idx] = False
         return True
+
+
+    def weights_encoding(self, x):
+        return codecs.encode(pickle.dumps(x), 'base64').decode()
+
+    def weights_decoding(self, s):
+        return pickle.loads(codecs.decode(s.encode(),'base64'))

@@ -16,6 +16,11 @@ from .utils import random_matrix,transform_list_to_tensor, post_complete_message
 from .GoWrappers import *
 import numpy as np
 import time
+from .SECAggregator import SecAggregator
+import json
+import codecs
+import pickle
+
 class FedAVGClientManager(ClientManager):
     def __init__(self,trainer,worker_num,robust,log_degree, log_scale, resiliency,params_count,args, comm, rank, size, backend="MPI"):
         super().__init__(args, comm, rank, size, backend)
@@ -46,7 +51,7 @@ class FedAVGClientManager(ClientManager):
         self.error = np.zeros((self.params_count,1))
         self.alpha = args.compression_alpha
         self.beta = 1 / self.alpha / (self.rate + 1 + 1 / self.alpha)
-
+        self.aggregator = SecAggregator(3,100103,(199658,1),np.float32(np.full((199658,1),1,dtype=int)))
 
     def register_message_receive_handlers(self):
         self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_PUBLIC_KEY_TO_CLIENT,self.handle_message_public_key_from_server)
@@ -55,7 +60,34 @@ class FedAVGClientManager(ClientManager):
         self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_SEND_DECRYPTION_INFO,self.handle_message_decryption_info_from_server)
         self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_SYNC_MODEL_TO_CLIENT,self.handle_message_receive_model_from_server)
         self.register_message_receive_handler(MyMessage.MSG_TYPE_C2C_SEND_PROCESSED_SS,self.handle_message_shamirshares)
+        self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_SEND_SECRET_INFO,self.handle_message_secret)
+        self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_SEND_THEIR_SECRET_INFO,self.handle_message_their_secret)
+        self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_SEND_INIT, self.handle_init)
 
+    def handle_init(self,msg_params):
+        self.send_pk_to_server()
+
+    def handle_message_their_secret(self,msg_params):
+        keylist = json.loads(msg_params.get(MyMessage.MSG_ARG_KEY_ABSENTJSON))
+        rvl_secret = self.weights_encoding(self.aggregator.reveal(keylist))
+        self.send_rvl_secret_to_server(rvl_secret)
+
+    def send_rvl_secret_to_server(self,rvl_secret):
+        message = Message(MyMessage.MSG_TYPE_C2S_RVL_SECRET,self.get_sender_id(), 0)
+        message.add_params(MyMessage.MSG_ARG_KEY_RVL_SECRET, rvl_secret)
+        self.send_message(message)
+
+
+    def handle_message_secret(self,msg_params):
+        secret = self.weights_encoding(-1*self.aggregator.private_secret())
+        self.send_secret(secret)
+
+
+    def send_secret(self,secret):
+        message = Message(MyMessage.MSG_TYPE_C2S_SECRET, self.get_sender_id(), 0)
+        message.add_params(MyMessage.MSG_ARG_KEY_SECRET_INFO, secret)
+
+        self.send_message(message)
 
     def run(self):
         super().run()
@@ -120,6 +152,12 @@ class FedAVGClientManager(ClientManager):
         weights, local_sample_num = self.trainer.train(self.round_idx)
         #print(weights[0:10])
         weights = weights.reshape(-1,1)
+        self.aggregator.set_weights(weights,(199658,1))
+        self.aggregator.configure(3,100103)
+        weights = self.aggregator.prepare_weights(self.pk,self.get_sender_id())
+        weights = self.weights_encoding(weights)
+
+        '''
         error_compensated = weights + self.error
         if self.compression==1:
             phi = random_matrix(self.alpha/2/self.samples, self.samples,self.params_count,seed = round_idx)
@@ -131,7 +169,10 @@ class FedAVGClientManager(ClientManager):
 
 
         enc_weights = self.encrypt(compressed)
-        self.send_model_to_server(0, enc_weights, local_sample_num)
+        '''
+        self.send_model_to_server(0, weights, local_sample_num)
+
+
 
     def handle_message_decryption_info_from_server(self,msg_params):
         decryptionParticipation = msg_params.get(MyMessage.MSG_ARG_KEY_DECRYPTION_PARTICIPATION)
@@ -144,7 +185,7 @@ class FedAVGClientManager(ClientManager):
 
     def handle_message_public_key_from_server(self,msg_params):
         print("Setup Phase time", time.time() - self.init)
-        self.pk = msg_params.get(MyMessage.MSG_ARG_KEY_PUBLIC_KEY)
+        self.pk = json.loads(msg_params.get(MyMessage.MSG_ARG_KEY_PUBLIC_KEY))
         self.send_message_phase1_done_to_server()
 
     def send_message_phase1_done_to_server(self):
@@ -194,7 +235,7 @@ class FedAVGClientManager(ClientManager):
 
     def send_pk_to_server(self):
         self.init = time.time()
-        CPK, self.SSstr= genCollectiveKeyShare_not_robust(self.worker_num,self.log_degree,self.log_scale, self.resiliency)
+        CPK = self.aggregator.public_key()
         self.send_message_CPK_to_server(0,CPK)
 
 
@@ -218,3 +259,7 @@ class FedAVGClientManager(ClientManager):
     def encrypt(self,weights):
         ct = encrypt(weights.reshape(-1), self.pk, self.SSstr, self.robust,self.log_degree, self.log_scale, self.resiliency)
         return ct
+
+
+    def weights_encoding(self, x):
+        return codecs.encode(pickle.dumps(x), 'base64').decode()
