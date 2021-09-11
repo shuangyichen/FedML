@@ -138,7 +138,7 @@ class FedAVGClientManager(ClientManager):
         decryptionCoefficients = msg_params.get(MyMessage.MSG_ARG_KEY_DECRYPTION_COEFFI)
         if decryptionParticipation == 1:
             tpk = msg_params.get(MyMessage.MSG_ARG_KEY_TPK)
-            PCKSShare = genPCKSShare(self.enc_aggregated_model,tpk,self.SSstr, decryptionCoefficients, self.params_count, self.robust, self.log_degree, self.log_scale)
+            PCKSShare = genPCKSShare(self.enc_aggregated_model,tpk,self.SSstr, decryptionCoefficients, self.samples, self.robust, self.log_degree, self.log_scale)
             self.send_PCKS_share_to_server(PCKSShare)
 
 

@@ -89,7 +89,7 @@ class FedAVGServerManager(ServerManager):
             pcksshare_list = []
             for c in clients:
                 pcksshare_list.append(self.aggregator.pcks_share_list[c])
-            res = decrypt(','.join(self.client_chosen),self.tsk,','.join(pcksshare_list),self.aggr_enc_model_list,self.log_degree,self.log_scale,self.params_count,self.worker_num)
+            res = decrypt(','.join(self.client_chosen),self.tsk,','.join(pcksshare_list),self.aggr_enc_model_list,self.log_degree,self.log_scale,self.samples,self.worker_num)
             #print("decrypted res,",res[0:20])
             res = np.array(res).reshape(-1, 1)/self.worker_num
 
@@ -166,7 +166,7 @@ class FedAVGServerManager(ServerManager):
         #print(self.aggregator.flag_client_model_uploaded_dict)
         b_all_received = self.aggregator.check_whether_all_receive()
         if b_all_received:
-            self.aggr_enc_model_list = aggregateEncrypted(','.join(self.aggregator.enc_model_list),self.worker_num,self.log_degree,self.log_scale,self.params_count)
+            self.aggr_enc_model_list = aggregateEncrypted(','.join(self.aggregator.enc_model_list),self.worker_num,self.log_degree,self.log_scale,self.samples)
             #client_indexes = self.aggregator.client_sampling(self.round_idx, self.args.client_num_in_total,
             #                                                     self.args.client_num_in_total)
             #client_indexes = self.aggregator.client_sampling(self.round_idx, self.worker_num,
