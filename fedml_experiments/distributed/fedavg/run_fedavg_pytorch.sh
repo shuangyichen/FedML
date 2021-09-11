@@ -20,7 +20,7 @@ COMPRESSION_ALPHA=${16}
 PROCESS_NUM=`expr $CLIENT_NUM + 1`
 echo $PROCESS_NUM
 
-hostname > mpi_host_file
+#hostname > mpi_host_file
 
 mpirun -np $PROCESS_NUM python3 ./main_fedavg.py \
   --model $MODEL \
