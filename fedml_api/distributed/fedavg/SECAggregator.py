@@ -37,17 +37,17 @@ class SecAggregator:
 		wghts = deepcopy(self.weights)
 		for sid in shared_keys:
 			if sid>str(myid):
-				print("1",myid,sid,(shared_keys[sid]**self.secretkey)%self.mod)
+				#print("1",myid,sid,(shared_keys[sid]**self.secretkey)%self.mod)
 				wghts+=self.generate_weights((shared_keys[sid]**self.secretkey)%self.mod)
 			elif sid<str(myid):
-				print("2",myid,sid,(shared_keys[sid]**self.secretkey)%self.mod)
+				#print("2",myid,sid,(shared_keys[sid]**self.secretkey)%self.mod)
 				wghts-=self.generate_weights((shared_keys[sid]**self.secretkey)%self.mod)
 		wghts+=self.generate_weights(self.sndkey)
 		return wghts
 	def reveal(self, keylist):
 		wghts = np.zeros(self.dim)
 		for each in keylist:
-			print(each)
+			#print(each)
 			if each<self.id:
 				wghts-=self.generate_weights((self.keys[str(each)]**self.secretkey)%self.mod)
 			elif each>self.id:
