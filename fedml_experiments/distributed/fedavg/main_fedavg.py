@@ -279,10 +279,10 @@ def create_model(args, model_name, output_dim):
     elif model_name == 'efficientnet':
         model = EfficientNet()
 
-    model_summary= summary(model, (1,28*28))
+    #model_summary= summary(model, (1,28*28))
 
-    print("param num ",model_summary.item())
-    return model, model_summary.item()
+    #print("param num ",model_summary.item())
+    return model, 200000#model_summary.item()
 
 
 if __name__ == "__main__":
