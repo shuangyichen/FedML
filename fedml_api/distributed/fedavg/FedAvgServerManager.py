@@ -19,7 +19,7 @@ import torch
 import time
 
 class FedAVGServerManager(ServerManager):
-    def __init__(self,worker_num,log_degree, log_scale,resiliency,robust, args,aggregator,params_count = 50000,comm=None,rank=0, size=0,backend="MPI"):
+    def __init__(self,worker_num,log_degree, log_scale,resiliency,robust, args,aggregator,params_count ,comm=None,rank=0, size=0,backend="MPI"):
         super().__init__(args, comm, rank, size, backend)
         self.aggregator = aggregator
         self.round_num = args.comm_round
@@ -32,7 +32,7 @@ class FedAVGServerManager(ServerManager):
         self.flag_client_uploaded_dict = dict()
         self.CollectivePublicKey = [None]*self.worker_num#dict()
         self.CollectivePublicKeyStr = [None]*self.worker_num
-        self.params_count = params_count
+        self.params_count = 200000
         self.model_weights = np.zeros((1,self.params_count))
         self.liveness_status = dict()
         self.count_times = 0
@@ -103,7 +103,7 @@ class FedAVGServerManager(ServerManager):
             print("decrypted res,",res1[len(res1)-10:])
             print("cost time:", time.time()-self.init_time)
 
-
+            '''
             res2 = np.array(res1).reshape(-1, 1)/self.worker_num
 
             if self.compression == 1:
@@ -124,7 +124,7 @@ class FedAVGServerManager(ServerManager):
 
             self.aggregator.set_global_model_params(model_params)
             self.aggregator.test_on_server_for_all_clients(self.round_idx)
-
+            '''
             # start the next round
             self.init_time = time.time()
             self.round_idx += 1
@@ -132,7 +132,7 @@ class FedAVGServerManager(ServerManager):
                                                                  self.worker_num)
             self.if_check_client_status = True
             self.aggregator.reset_pcks_dict()
-            #model_params = np.zeros((1,self.params_count))
+            model_params = 1
             for receiver_id in range(1, self.size):
 
                 self.send_message_sync_model_to_client(receiver_id, model_params,

@@ -32,8 +32,8 @@ class FedAVGClientManager(ClientManager):
         self.log_scale = log_scale
         self.resiliency = resiliency
         self.trainer = trainer
-        self.params_count = params_count
-        #print("params_count",params_count)
+        self.params_count = 200000#params_count
+        print("params_count",self.params_count)
         self.shamirshare_list = []
         self.SSstr = None
         self.collective_shamirshare = [None]*self.worker_num
@@ -80,13 +80,13 @@ class FedAVGClientManager(ClientManager):
 
     #def handle_message_receive_model_from_server(self):
     def handle_message_receive_model_from_server(self, msg_params):
-        model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
-        client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
+        #model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
+        #client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
 
         #if self.args.is_mobile == 1:
         #    model_params = transform_list_to_tensor(model_params)
-        self.trainer.update_model(model_params)
-        self.trainer.update_dataset(int(client_index))
+        #self.trainer.update_model(model_params)
+        #self.trainer.update_dataset(int(client_index))
 
         #w = transform_dict_list(model_params)
 
@@ -97,15 +97,15 @@ class FedAVGClientManager(ClientManager):
             self.finish()
 
     def handle_message_init(self, msg_params):
-        global_model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
-        client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
+        #global_model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
+        #client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
 
         #print("model param", global_model_params)
-        if self.args.is_mobile == 1:
-            global_model_params = transform_list_to_tensor(global_model_params)
+        #if self.args.is_mobile == 1:
+        #    global_model_params = transform_list_to_tensor(global_model_params)
 
-        self.trainer.update_model(global_model_params)
-        self.trainer.update_dataset(int(client_index))
+        #self.trainer.update_model(global_model_params)
+        #self.trainer.update_dataset(int(client_index))
         self.round_idx = 0
         self.__train()
 
@@ -119,22 +119,23 @@ class FedAVGClientManager(ClientManager):
 
     def __train(self):
         logging.info("#######training########### round_id = %d" % self.round_idx)
-        comp_init = time.time()
-        weights, local_sample_num = self.trainer.train(self.round_idx)
-        print("Computation time", time.time()-comp_init)
+        #comp_init = time.time()
+        #weights, local_sample_num = self.trainer.train(self.round_idx)
+        #print("Computation time", time.time()-comp_init)
         #weights = np.ones((self.params_count,1))
         #print("non-encryped weights last 10", weights[self.params_count-10:self.params_count])
         #if self.get_sender_id()%2==0:
         #    weights = -1*22*np.ones((self.params_count,1), dtype=np.int)
         #else:
         #    weights = -1*10*np.ones((self.params_count,1), dtype=np.int)
-        #weights = np.random.randint(-1*pow(10,4),pow(10,4),size = self.params_count)
-        weights = weights*pow(10,6)
-        weights = np.round(weights)
-        weights = np.array(weights, dtype = np.int)
+        local_sample_num = 0
+        weights = np.random.randint(1,10,size = self.params_count)
+        #weights = weights*pow(10,6)
+        #weights = np.round(weights)
+        #weights = np.array(weights, dtype = np.int)
         #print("weights", weights[0:10])
         #print("weights", weights[self.params_count-10:])
-        weights = np.clip(weights,-1*pow(10,4),pow(10,4))
+        #weights = np.clip(weights,-1*pow(10,4),pow(10,4))
 
         weights = weights.reshape(-1,1)
         error_compensated = weights + self.error
