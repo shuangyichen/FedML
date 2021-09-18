@@ -71,14 +71,14 @@ typedef struct { void *data; GoInt len; GoInt cap; } GoSlice;
 extern "C" {
 #endif
 
-extern GoUintptr genShamirShareString_robust(GoSlice shamirShare, GoInt numPeers, GoUint64 logDegree, GoFloat64 scale, GoFloat64 resiliency);
+extern GoUintptr genShamirShareString_robust(GoSlice shamirShare, GoInt numPeers, GoInt k, GoUint64 logDegree, GoFloat64 scale, GoFloat64 resiliency);
 
 /* Return type for genShamirShares */
 struct genShamirShares_return {
 	GoUintptr r0; /* SSPoniter */
 	GoUintptr r1; /* collectiveKeyShairPointer */
 };
-extern struct genShamirShares_return genShamirShares(GoInt numPeers, GoUint64 logDegree, GoFloat64 scale, GoFloat64 resiliency);
+extern struct genShamirShares_return genShamirShares(GoInt numPeers, GoInt k, GoUint64 logDegree, GoFloat64 scale, GoFloat64 resiliency);
 
 /* Return type for genCollectiveKeyShare_not_robust */
 struct genCollectiveKeyShare_not_robust_return {
@@ -87,7 +87,7 @@ struct genCollectiveKeyShare_not_robust_return {
 };
 
 //func genCollectiveKeyShare_not_robust(numPeers int, logDegree uint64, scale float64, resiliency float64)(PK_pointer uintptr, SS uintptr, res *C.char, shamirShareString *C.char){
-extern struct genCollectiveKeyShare_not_robust_return genCollectiveKeyShare_not_robust(GoInt numPeers, GoUint64 logDegree, GoFloat64 scale, GoFloat64 resiliency);
+extern struct genCollectiveKeyShare_not_robust_return genCollectiveKeyShare_not_robust(GoInt numPeers, GoInt k, GoUint64 logDegree, GoFloat64 scale, GoFloat64 resiliency);
 
 /* Return type for encryptMsg */
 struct encryptMsg_return {

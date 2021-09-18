@@ -26,6 +26,8 @@ class FedAVGClientManager(ClientManager):
         if not self.robust:
             self.status = 1
 
+        self.k = args.client_num_per_round
+
         self.log_degree = log_degree
         self.log_scale = log_scale
         self.resiliency = resiliency
@@ -72,7 +74,7 @@ class FedAVGClientManager(ClientManager):
             shamirshare_list = []
             for ss in self.collective_shamirshare:
                 shamirshare_list += ss
-            SS = genShamirShareString_robust(shamirshare_list, self.worker_num, self.log_degree,self.log_scale)
+            SS = genShamirShareString_robust(shamirshare_list, self.worker_num, self.k, self.log_degree,self.log_scale)
             self.SS = SS.tolist()
             self.send_message_CPK_to_server(0,self.CPK)
 
@@ -122,6 +124,17 @@ class FedAVGClientManager(ClientManager):
         print("Computation time", time.time()-comp_init)
         #weights = np.ones((self.params_count,1))
         #print("non-encryped weights last 10", weights[self.params_count-10:self.params_count])
+        #if self.get_sender_id()%2==0:
+        #    weights = -1*22*np.ones((self.params_count,1), dtype=np.int)
+        #else:
+        #    weights = -1*10*np.ones((self.params_count,1), dtype=np.int)
+        #weights = np.random.randint(-1*pow(10,4),pow(10,4),size = self.params_count)
+        weights = weights*pow(10,6)
+        weights = np.round(weights)
+        weights = np.array(weights, dtype = np.int)
+        #print("weights", weights[0:10])
+        #print("weights", weights[self.params_count-10:])
+        weights = np.clip(weights,-1*pow(10,4),pow(10,4))
 
         weights = weights.reshape(-1,1)
         error_compensated = weights + self.error
@@ -180,7 +193,7 @@ class FedAVGClientManager(ClientManager):
 
     def send_SS(self):
         self.phase1init = time.time()
-        ShamirShares, CPK = genShamirShares(self.worker_num,self.log_degree,self.log_scale, self.resiliency)
+        ShamirShares, CPK = genShamirShares(self.worker_num,self.k, self.log_degree,self.log_scale, self.resiliency)
         self.CPK = CPK.tolist()
         ShamirShares = ShamirShares.reshape(self.worker_num,-1)
         for partyCntr in range(self.worker_num):
@@ -193,7 +206,7 @@ class FedAVGClientManager(ClientManager):
     def send_pk_to_server(self):
         self.phase1init = time.time()
         #CPK = genCollectiveKeyShare_not_robust(self.worker_num,self.log_degree,self.log_scale, self.resiliency)
-        CPK, SS = genCollectiveKeyShare_not_robust(self.worker_num,self.log_degree,self.log_scale, self.resiliency)
+        CPK, SS = genCollectiveKeyShare_not_robust(self.worker_num,self.k,self.log_degree,self.log_scale, self.resiliency)
         self.SS = SS.tolist()
         self.send_message_CPK_to_server(0,CPK.tolist())
 
