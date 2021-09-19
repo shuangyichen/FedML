@@ -97,10 +97,11 @@ class FedAVGServerManager(ServerManager):
             res1 = res.tolist()
             #model_weights = self.model_weights.tolist()
 
-            res1 = res[0]
+            res1 = res1[0]
             #print("res",len(res))
-            for i,r in enumerate(res):
-                res1[i] = float(format(res1[i], '.6f'))
+            for i,r in enumerate(res1):
+                res1[i] = res1[i]/pow(10,6)
+                #res1[i] = float(format(res1[i], '.6f'))
             #print("decrypted res,",res1[0:10])
             print("cost time:", time.time()-self.init_time)
 

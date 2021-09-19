@@ -19,12 +19,22 @@ def uint64convertToGoSlice(npArray):
         data[i] = npArray[i][0]
     return GoSliceuint64(data, len(data), len(data))
 
+def int64convertToGoSlice(npArray):
+    #print("goslice length", len(npArray))
+    data = (c_longlong * len(npArray))(0)
+    for i in range(len(npArray)):
+        data[i] = npArray[i]
+    return GoSliceint64(data, len(data), len(data))
+
 def uint64convertToGoSlice_(npArray):
     #print("goslice length", len(npArray))
     data = (c_ulonglong * len(npArray))(0)
     for i in range(len(npArray)):
         data[i] = npArray[i]
     return GoSliceuint64(data, len(data), len(data))
+
+class GoSliceint64(Structure):
+    _fields_ = [("data", POINTER(c_longlong)), ("len", c_longlong), ("cap", c_longlong)]
 
 class GoSliceuint64(Structure):
     _fields_ = [("data", POINTER(c_ulonglong)), ("len", c_longlong), ("cap", c_longlong)]
@@ -55,13 +65,13 @@ class encryptMsg_return(Structure):
 class aggregateEncrypted_return(Structure):
     _fields_ = [("r0", POINTER(c_ulonglong)), ("r1",c_longlong)]
 
-lib.encryptMsg.argtypes = [GoSlice, GoSliceuint64, GoSliceuint64, c_ubyte, c_ulonglong, c_double, c_double, c_longlong]
+lib.encryptMsg.argtypes = [GoSliceint64, GoSliceuint64, GoSliceuint64, c_ubyte, c_ulonglong, c_double, c_double, c_longlong]
 lib.encryptMsg.restype = encryptMsg_return#POINTER(c_ulonglong)
 lib.aggregateEncrypted.argtypes = [GoSliceuint64,c_ubyte,c_ulonglong, c_double, c_longlong]
 lib.aggregateEncrypted.restype =  aggregateEncrypted_return#POINTER(c_ulonglong)
-lib.genShamirShares.argtypes = [c_longlong, c_ulonglong, c_double, c_double]
+lib.genShamirShares.argtypes = [c_longlong, c_longlong, c_ulonglong, c_double, c_double]
 lib.genShamirShares.restype = genShamirShares_return
-lib.genCollectiveKeyShare_not_robust.argtypes = [c_longlong, c_ulonglong, c_double, c_double]
+lib.genCollectiveKeyShare_not_robust.argtypes = [c_longlong,c_longlong, c_ulonglong, c_double, c_double]
 lib.genCollectiveKeyShare_not_robust.restype = genCollectiveKeyShare_not_robust_return
 #lib.genCollectiveKeyShare_not_robust.restype = c_uint64
 #lib.genCollectiveKeyShare_not_robust.restype = ndpointer(dtype = c_ulonglong, shape = (16384,1))
@@ -72,8 +82,8 @@ lib.genTPK.restype = genTPK_return
 lib.genPCKSShare.argtypes = [GoSliceuint64, GoSliceuint64, GoSliceuint64, c_longlong,c_ulonglong, c_ulonglong,c_ubyte,c_ulonglong, c_double]
 lib.genPCKSShare.restype = POINTER(c_ulonglong)
 lib.decrypt.argtypes = [GoString, GoSliceuint64, GoSliceuint64, GoSliceuint64, c_ulonglong, c_double, c_ulonglong, c_longlong ]
-lib.decrypt.restype = POINTER(c_double)
-lib.genShamirShareString_robust.argtypes = [GoSliceuint64, c_longlong, c_ulonglong, c_double]
+lib.decrypt.restype = POINTER(c_longlong)
+lib.genShamirShareString_robust.argtypes = [GoSliceuint64, c_longlong, c_longlong, c_ulonglong, c_double]
 lib.genShamirShareString_robust.restype = POINTER(c_ulonglong)
 lib.genDecryptionCoefficients.argtype = GoString
 lib.genDecryptionCoefficients.restype = c_char_p
@@ -83,8 +93,8 @@ def genDecryptionCoefficients(client_chosen_list):
     res = lib.genDecryptionCoefficients(GoString(client_chosen_list,len(client_chosen_list)))
     return res
 
-def genShamirShareString_robust(shamirShare, numPeers, logDegree, scale):
-    res = lib.genShamirShareString_robust(uint64convertToGoSlice_(shamirShare), numPeers, logDegree, 2.**scale)
+def genShamirShareString_robust(shamirShare, numPeers, k,logDegree, scale):
+    res = lib.genShamirShareString_robust(uint64convertToGoSlice_(shamirShare), numPeers, k, logDegree, 2.**scale)
     return np.ctypeslib.as_array(res,shape = (16384,1))
 
 def decrypt(client_chosen,tsk,pcksShare, encResult, logDegree, scale, inputLength, numPeers):
@@ -108,7 +118,7 @@ def genTPK(log_degree,log_scale):
 
 
 def encrypt(inputs,public_key, shamir_share,robust, log_degree, log_scale, resiliency, worker_num):
-    cInput = convertToGoSlice(inputs)
+    cInput = int64convertToGoSlice(inputs)
     pk = uint64convertToGoSlice(public_key)
     ss = uint64convertToGoSlice(shamir_share)
     init = time.time()
@@ -127,13 +137,13 @@ def aggregateEncrypted(enc_model_list,worker_num,log_degree,log_scale,input_leng
 
 
 
-def genShamirShares(worker_num, log_degree, log_scale,resilliency):
+def genShamirShares(worker_num, k, log_degree, log_scale,resilliency):
 
-    res = lib.genShamirShares(worker_num, log_degree,2.**log_scale,resilliency)
+    res = lib.genShamirShares(worker_num, k, log_degree,2.**log_scale,resilliency)
     return np.ctypeslib.as_array(res.r0,shape = (16384*worker_num,1)), np.ctypeslib.as_array(res.r1,shape = (16384,1))
 
-def genCollectiveKeyShare_not_robust(worker_num, log_degree, log_scale,resilliency):
-    out = lib.genCollectiveKeyShare_not_robust(worker_num, log_degree,2.**log_scale,resilliency)
+def genCollectiveKeyShare_not_robust(worker_num,k, log_degree, log_scale,resilliency):
+    out = lib.genCollectiveKeyShare_not_robust(worker_num,k, log_degree,2.**log_scale,resilliency)
     out1 = np.ctypeslib.as_array(out.r0,shape = (16384,1))
     out2 = np.ctypeslib.as_array(out.r1,shape = (16384,1))
     return out1, out2
