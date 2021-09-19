@@ -86,8 +86,8 @@ class FedAVGClientManager(ClientManager):
         #if self.args.is_mobile == 1:
         #    model_params = transform_list_to_tensor(model_params)
         self.trainer.update_model(model_params)
-        self.trainer.update_dataset(int(client_index))
-
+        #self.trainer.update_dataset(int(client_index))
+        self.trainer.update_dataset(0)
         #w = transform_dict_list(model_params)
 
         self.round_idx += 1
@@ -105,7 +105,7 @@ class FedAVGClientManager(ClientManager):
             global_model_params = transform_list_to_tensor(global_model_params)
 
         self.trainer.update_model(global_model_params)
-        self.trainer.update_dataset(int(client_index))
+        self.trainer.update_dataset(0)
         self.round_idx = 0
         self.__train()
 

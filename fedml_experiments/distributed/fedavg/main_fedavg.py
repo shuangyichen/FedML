@@ -45,6 +45,13 @@ from fedml_api.model.cv.efficientnet import EfficientNet
 
 from fedml_api.distributed.fedavg.FedAvgAPI import FedML_init, FedML_FedAvg_distributed
 
+def combine_batches(batches):
+    full_x = torch.from_numpy(np.asarray([])).float()
+    full_y = torch.from_numpy(np.asarray([])).long()
+    for (batched_x, batched_y) in batches:
+        full_x = torch.cat((full_x, batched_x), 0)
+        full_y = torch.cat((full_y, batched_y), 0)
+    return [(full_x, full_y)]  # 变成张量的形式
 
 def add_args(parser):
     """
@@ -141,7 +148,7 @@ def load_data(args, dataset_name):
         For shallow NN or linear models,
         we uniformly sample a fraction of clients each round (as the original FedAvg paper)
         """
-        args.client_num_in_total = client_num
+        #args.client_num_in_total = client_num
 
     elif dataset_name == "femnist":
         logging.info("load_data. dataset_name = %s" % dataset_name)
@@ -235,6 +242,18 @@ def load_data(args, dataset_name):
         train_data_local_num_dict, train_data_local_dict, test_data_local_dict, \
         class_num = data_loader(args.dataset, args.data_dir, args.partition_method,
                                 args.partition_alpha, args.client_num_in_total, args.batch_size)
+
+
+    train_data_local_num_dict = {0: sum(user_train_data_num for user_train_data_num in train_data_local_num_dict.values())}
+    train_data_local_dict = {0: [batch for cid in sorted(train_data_local_dict.keys()) for batch in train_data_local_dict[cid]]}  # 聚合所有的数据
+    test_data_local_dict = {0: [batch for cid in sorted(test_data_local_dict.keys()) for batch in test_data_local_dict[cid]]}
+    '''
+    train_data_global = combine_batches(train_data_global)
+    test_data_global = combine_batches(test_data_global)
+    train_data_local_dict = {cid: combine_batches(train_data_local_dict[cid]) for cid in train_data_local_dict.keys()}
+    test_data_local_dict = {cid: combine_batches(test_data_local_dict[cid]) for cid in test_data_local_dict.keys()}
+    '''
+    #print(train_data_local_dict.keys())
     dataset = [train_data_num, test_data_num, train_data_global, test_data_global,
                train_data_local_num_dict, train_data_local_dict, test_data_local_dict, class_num]
     return dataset
@@ -357,9 +376,20 @@ if __name__ == "__main__":
 
     # try:
         # start "federated averaging (FedAvg)"
+    #print("train_data_num",train_data_num)
+    #print("test_data_num",test_data_num)
+    #print("train_data_global",train_data_global)
+    #print("test_data_global",test_data_global)
+    #print("train_data_local_num_dict",train_data_local_num_dict)
+    #print("train_data_local_dict",train_data_local_dict)
+    #print("test_data_local_dict",test_data_local_dict)
+    #print("classnum", class_num)
+
+
     FedML_FedAvg_distributed(process_id, worker_number, device, comm,
                              model, param_num, train_data_num, train_data_global, test_data_global,
                              train_data_local_num_dict, train_data_local_dict, test_data_local_dict, args, robust)
+
     # except Exception as e:
     #     print(e)
     #     logging.info('traceback.format_exc():\n%s' % traceback.format_exc())
