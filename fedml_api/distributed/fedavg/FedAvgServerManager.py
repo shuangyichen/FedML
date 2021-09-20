@@ -99,8 +99,8 @@ class FedAVGServerManager(ServerManager):
                 #print(res1[i])
                 res1[i] = res1[i]/pow(10,6)
                 #print(res1[i])
-            print("decrypted res,",res1[0:10])
-            print("decrypted res,",res1[len(res1)-10:])
+            #print("decrypted res,",res1[0:10])
+            #print("decrypted res,",res1[len(res1)-10:])
             print("cost time:", time.time()-self.init_time)
 
 

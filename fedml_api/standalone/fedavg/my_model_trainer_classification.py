@@ -1,5 +1,5 @@
 import logging
-
+import time
 import torch
 from torch import nn
 import numpy as np
@@ -34,25 +34,26 @@ class MyModelTrainer(ModelTrainer):
         for epoch in range(args.epochs):
             batch_loss = []
             #print("len of train data",len(train_data))
-            batch = np.random.randint(len(train_data),size=1)[0]
+            #np.random.seed(int(time.time()))
+            #batch = np.random.randint(len(train_data),size=1)[0]
             for batch_idx, (x, labels) in enumerate(train_data):
-                if batch_idx == batch:
-                    #print(batch_idx)
-                    x, labels = x.to(device), labels.to(device)
-                    model.zero_grad()
-                    log_probs = model(x)
-                    loss = criterion(log_probs, labels)
-                    loss.backward()
+                #if batch_idx == batch:
+                #print(batch_idx)
+                x, labels = x.to(device), labels.to(device)
+                model.zero_grad()
+                log_probs = model(x)
+                loss = criterion(log_probs, labels)
+                loss.backward()
 
                 # to avoid nan loss
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
 
-                    optimizer.step()
+                optimizer.step()
                 # logging.info('Update Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 #     epoch, (batch_idx + 1) * args.batch_size, len(train_data) * args.batch_size,
                 #            100. * (batch_idx + 1) / len(train_data), loss.item()))
                     #print(loss.item())
-                    batch_loss.append(loss.item())
+                batch_loss.append(loss.item())
                     #print(batch_loss)
             epoch_loss.append(sum(batch_loss) / len(batch_loss))
             logging.info('Client Index = {}\tEpoch: {}\tLoss: {:.6f}'.format(

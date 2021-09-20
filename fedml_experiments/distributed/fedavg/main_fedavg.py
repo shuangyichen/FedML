@@ -148,7 +148,7 @@ def load_data(args, dataset_name):
         For shallow NN or linear models,
         we uniformly sample a fraction of clients each round (as the original FedAvg paper)
         """
-        #args.client_num_in_total = client_num
+        args.client_num_in_total = client_num
 
     elif dataset_name == "femnist":
         logging.info("load_data. dataset_name = %s" % dataset_name)
@@ -244,9 +244,9 @@ def load_data(args, dataset_name):
                                 args.partition_alpha, args.client_num_in_total, args.batch_size)
 
 
-    train_data_local_num_dict = {0: sum(user_train_data_num for user_train_data_num in train_data_local_num_dict.values())}
-    train_data_local_dict = {0: [batch for cid in sorted(train_data_local_dict.keys()) for batch in train_data_local_dict[cid]]}  # 聚合所有的数据
-    test_data_local_dict = {0: [batch for cid in sorted(test_data_local_dict.keys()) for batch in test_data_local_dict[cid]]}
+    #train_data_local_num_dict = {0: sum(user_train_data_num for user_train_data_num in train_data_local_num_dict.values())}
+    #train_data_local_dict = {0: [batch for cid in sorted(train_data_local_dict.keys()) for batch in train_data_local_dict[cid]]}  # 聚合所有的数据
+    #test_data_local_dict = {0: [batch for cid in sorted(test_data_local_dict.keys()) for batch in test_data_local_dict[cid]]}
     '''
     train_data_global = combine_batches(train_data_global)
     test_data_global = combine_batches(test_data_global)
@@ -291,6 +291,8 @@ def create_model(args, model_name, output_dim):
         model = mobilenet(class_num=output_dim)
     elif model_name == "cnn_test":
         model = CNN_Test(False)
+    elif  model_name == "cnn":
+        model = CNN_DropOut(True)
     # TODO
     elif model_name == 'mobilenet_v3':
         '''model_mode \in {LARGE: 5.15M, SMALL: 2.94M}'''
@@ -339,7 +341,7 @@ if __name__ == "__main__":
                  ", process Name = " + str(psutil.Process(os.getpid())))
 
     # initialize the wandb machine learning experimental tracking platform (https://www.wandb.com/).
-    '''
+
     if process_id == 0:
         wandb.init(
             # project="federated_nas",
@@ -349,7 +351,6 @@ if __name__ == "__main__":
                 args.lr),
             config=args
         )
-    '''
     # Set the random seed. The np.random seed determines the dataset partition.
     # The torch_manual_seed determines the initial weight.
     # We fix these two, so that we can reproduce the result.

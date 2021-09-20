@@ -2,7 +2,7 @@ from ctypes import *
 from numpy.ctypeslib import ndpointer
 import numpy as np
 # loading the shared libraries
-lib = CDLL("./../../../fedml_api/distributed/fedavg/Encryption/func1.so")
+lib = CDLL("./../../../fedml_api/distributed/fedavg/Encryption/func2.so")
 import time
 # defining the required conversion
 def convertToGoSlice(npArray):
