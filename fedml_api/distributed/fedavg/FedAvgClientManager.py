@@ -89,7 +89,7 @@ class FedAVGClientManager(ClientManager):
         #if self.args.is_mobile == 1:
         #    model_params = transform_list_to_tensor(model_params)
         self.trainer.update_model(model_params)
-        self.trainer.update_dataset(0)#int(client_index))
+        self.trainer.update_dataset(int(client_index))
 
         #w = transform_dict_list(model_params)
 
@@ -108,7 +108,7 @@ class FedAVGClientManager(ClientManager):
             global_model_params = transform_list_to_tensor(global_model_params)
 
         self.trainer.update_model(global_model_params)
-        self.trainer.update_dataset(0)#int(client_index))
+        self.trainer.update_dataset(int(client_index))
         #self.round_idx = 0
         self.__train()
 
@@ -131,7 +131,7 @@ class FedAVGClientManager(ClientManager):
         weights = np.round(weights)
         weights = np.array(weights, dtype = np.int)
 
-        weights = np.clip(weights,-1*pow(10,4),pow(10,4))
+        weights = np.clip(weights,-1*pow(10,7),pow(10,7))
         weights = weights.reshape(-1,1)
         error_compensated = weights + self.error
         if self.compression==1:

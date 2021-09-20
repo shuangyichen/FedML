@@ -30,7 +30,8 @@ func genCollectivePK(cpk []uint64,numPeers int, logDegree uint64, scale float64)
 	var ringPrime uint64 = 0xfffffffffffc001
     moduli := &bfv.Moduli{[]uint64{ringPrime}, []uint64{ringPrime}, []uint64{ringPrime}}
 
-    params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65537)
+    //params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65537)
+    params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65929217)
     if err != nil {
         panic(err)
     }
