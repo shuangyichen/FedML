@@ -129,13 +129,14 @@ class FedAVGClientManager(ClientManager):
         #else:
         #    weights = -1*10*np.ones((self.params_count,1), dtype=np.int)
         #weights = np.random.randint(-1*pow(10,4),pow(10,4),size = self.params_count)
+        '''
         weights = weights*pow(10,6)
         weights = np.round(weights)
         weights = np.array(weights, dtype = np.int)
         #print("weights", weights[0:10])
         #print("weights", weights[self.params_count-10:])
         weights = np.clip(weights,-1*pow(10,7),pow(10,7))
-
+        '''
         weights = weights.reshape(-1,1)
         error_compensated = weights + self.error
         if self.compression==1:
@@ -146,7 +147,11 @@ class FedAVGClientManager(ClientManager):
         else:
             compressed = weights
 
-        enc_weights, self.numPieces= self.encrypt(compressed.reshape(-1))
+        compressed = compressed*pow(10,6)
+        compressed = np.round(compressed)
+        compressed = np.array(compressed, dtype = np.int)
+        compressed = np.clip(compressed,-1*pow(10,7),pow(10,7))
+        enc_weights, self.numPieces= self.encrypt(compressed.reshape((-1,1)))
 
         self.send_model_to_server(0, enc_weights.tolist(), local_sample_num)
 
