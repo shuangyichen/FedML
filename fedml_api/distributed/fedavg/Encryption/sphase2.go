@@ -223,21 +223,21 @@ func decrypt(client_chosen string,tskList []uint64, pcksShareList []uint64, encR
         encResult[pieceCounter] = bfv.NewCiphertext(params, 1)
         encResult[pieceCounter].SetValue(ctContents)
     }
-    clients := strings.Split(client_chosen,",")
+    //clients := strings.Split(client_chosen,",")
     pcksShares := make([][]dbfv.PCKSShare, numPeers)
     pcksCombined := make([]dbfv.PCKSShare, numPieces)
 	for i := range pcksCombined {
 		pcksCombined[i] = pcks.AllocateShares()
 	}
     pcksSharesArray := unsqueezedArray(pcksShareList,numPeers)
-	//for peerIdx := range pcksShares {
-    for Idx:= range clients{
+	for peerIdx := range pcksShares {
+    //for Idx:= range clients{
 		//if decryptionParticipation[peerIdx] == 1 {
-			peerIdx, err := strconv.Atoi(clients[Idx])
+			//peerIdx, err := strconv.Atoi(clients[Idx])
             if err != nil {
                 panic(err)
             }
-            peerIdx = peerIdx-1
+            //peerIdx = peerIdx-1
 
             pcksShares[peerIdx] = make([]dbfv.PCKSShare, numPieces)
             pcksSharePiece  := pcksSharesArray[peerIdx]

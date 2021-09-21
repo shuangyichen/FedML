@@ -68,6 +68,7 @@ class FedAVGServerManager(ServerManager):
         if self.args.is_mobile == 1:
             global_model_params = transform_tensor_to_list(global_model_params)
         self.init_time = time.time()
+        self.CollectivePublicKey = dict()
         for i,receiver_id in enumerate(self.client_chosen):
         #for process_id in range(1, self.size):
             self.send_message_init_config(int(receiver_id), global_model_params, client_indexes[i])
@@ -132,10 +133,11 @@ class FedAVGServerManager(ServerManager):
             self.round_idx += 1
             #client_indexes = self.aggregator.client_sampling(self.round_idx, self.args.client_num_in_total,
             #                                                     self.worker_num)
+            '''
             self.if_check_client_status = True
             self.aggregator.reset_pcks_dict()
             #model_params = np.zeros((1,self.params_count))
-            '''
+
             self.client_chosen = random.sample(range(self.worker_num),self.k)
             for receiver_id in self.client_chosen:
                 self.send_message_one_iter_done(receiver_id+1)
@@ -258,6 +260,7 @@ class FedAVGServerManager(ServerManager):
             for pk in keys:
                 #print("pk share",pk[0:5])
                 CPKconcate += self.CollectivePublicKey[pk]
+            print("CPK",len(CPKconcate))
             #CPKListStr = ','.join(self.CollectivePublicKeyStr)
             res = genCollectivePK(CPKconcate,self.k,self.log_degree,self.log_scale)
             res = res.tolist()
