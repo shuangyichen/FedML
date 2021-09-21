@@ -264,7 +264,7 @@ class FedAVGServerManager(ServerManager):
             if self.flag_client_uploaded_dict[idx]:
                 status_already_received += 1
                 client_chosen.append(str(idx+1))
-        if status_already_received==self.worker_num-self.resiliency:
+        if status_already_received==self.k:
             for idx in range(self.worker_num):
                 self.flag_client_uploaded_dict[idx] = False
             self.if_check_client_status  = False
