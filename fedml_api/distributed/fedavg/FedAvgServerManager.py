@@ -67,7 +67,7 @@ class FedAVGServerManager(ServerManager):
         global_model_params = self.aggregator.get_global_model_params()
         if self.args.is_mobile == 1:
             global_model_params = transform_tensor_to_list(global_model_params)
-        #self.init_time = time.time()
+        self.init_time = time.time()
         for i,receiver_id in enumerate(self.client_chosen):
         #for process_id in range(1, self.size):
             self.send_message_init_config(int(receiver_id), global_model_params, client_indexes[i])

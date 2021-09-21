@@ -134,7 +134,7 @@ class FedAVGClientManager(ClientManager):
 
         #weights = np.clip(weights,-1*pow(10,7),pow(10,7))
         #weights = weights.reshape(-1,1)
-        error_compensated = weights + self.error
+        #error_compensated = weights + self.error
         if self.compression==1:
             phi = random_matrix(self.alpha/2/self.samples, self.samples,self.params_count,seed = self.round_idx)
             compressed = self.beta * phi.dot(error_compensated)
