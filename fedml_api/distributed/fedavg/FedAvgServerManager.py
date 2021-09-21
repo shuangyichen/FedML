@@ -34,7 +34,7 @@ class FedAVGServerManager(ServerManager):
         self.flag_client_uploaded_pk_dict = dict()
         self.CollectivePublicKey = dict()
         self.CollectivePublicKeyStr = dict()
-        self.params_count = params_count
+        self.params_count = 200000#params_count
         self.model_weights = np.zeros((1,self.params_count))
         self.liveness_status = dict()
         self.count_times = 0
@@ -99,8 +99,8 @@ class FedAVGServerManager(ServerManager):
 
             res1 = res1[0]
             #print("res",len(res))
-            for i,r in enumerate(res1):
-                res1[i] = res1[i]/pow(10,6)
+            #for i,r in enumerate(res1):
+            #    res1[i] = res1[i]/pow(10,6)
                 #res1[i] = float(format(res1[i], '.6f'))
             #print("decrypted res,",res1[0:10])
             print("cost time:", time.time()-self.init_time)
@@ -112,8 +112,8 @@ class FedAVGServerManager(ServerManager):
                 phi = random_matrix(self.alpha/2/self.samples, self.samples, self.params_count, seed = self.round_idx)
                 res2 = phi.transpose().dot(res2)
             #print("res", res[0:5])
-            model_params = self.aggregator.get_global_model_params()
-
+            #model_params = self.aggregator.get_global_model_params()
+            '''
             self.shape = {}
             idx = 0
             for k in model_params.keys():
@@ -135,6 +135,7 @@ class FedAVGServerManager(ServerManager):
             self.if_check_client_status = True
             self.aggregator.reset_pcks_dict()
             #model_params = np.zeros((1,self.params_count))
+            '''
             self.client_chosen = random.sample(range(self.worker_num),self.k)
             for receiver_id in self.client_chosen:
                 self.send_message_one_iter_done(receiver_id+1)
