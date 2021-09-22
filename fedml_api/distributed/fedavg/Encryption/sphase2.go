@@ -57,6 +57,7 @@ func aggregateEncrypted(encInputList []uint64, numPeers int, logDegree uint64, s
     moduli := &bfv.Moduli{[]uint64{ringPrime}, []uint64{ringPrime}, []uint64{ringPrime}}
     //params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65537)
     params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65929217)
+    //params, err := bfv.NewParametersFromModuli(logDegree, moduli,2652353003)
     //params.SetScale(scale)
     //params.SetLogSlots(logDegree - 1)
 
@@ -141,6 +142,7 @@ func genTPK(logDegree uint64, scale float64)(tpkPointer uintptr, tskPointer uint
     moduli := &bfv.Moduli{[]uint64{ringPrime}, []uint64{ringPrime}, []uint64{ringPrime}}
 	//params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65537)
     params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65929217)
+    //params, err := bfv.NewParametersFromModuli(logDegree, moduli,2652353003)
     if err != nil {
 		panic(err)
 	}
@@ -185,6 +187,7 @@ func decrypt(client_chosen string,tskList []uint64, pcksShareList []uint64, encR
     moduli := &bfv.Moduli{[]uint64{ringPrime}, []uint64{ringPrime}, []uint64{ringPrime}}
     //params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65537)
     params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65929217)
+    //params, err := bfv.NewParametersFromModuli(logDegree, moduli,2652353003)
     if err != nil {
         panic(err)
     }

@@ -34,7 +34,7 @@ from fedml_api.data_preprocessing.cifar10.data_loader import load_partition_data
 from fedml_api.data_preprocessing.cifar100.data_loader import load_partition_data_cifar100
 from fedml_api.data_preprocessing.cinic10.data_loader import load_partition_data_cinic10
 
-from fedml_api.model.cv.cnn import CNN_DropOut, CNN_Test
+from fedml_api.model.cv.cnn import CNN_DropOut,CNN_Test
 from fedml_api.model.cv.resnet_gn import resnet18
 from fedml_api.model.cv.mobilenet import mobilenet
 from fedml_api.model.cv.resnet import resnet56
@@ -45,13 +45,6 @@ from fedml_api.model.cv.efficientnet import EfficientNet
 
 from fedml_api.distributed.fedavg.FedAvgAPI import FedML_init, FedML_FedAvg_distributed
 
-def combine_batches(batches):
-    full_x = torch.from_numpy(np.asarray([])).float()
-    full_y = torch.from_numpy(np.asarray([])).long()
-    for (batched_x, batched_y) in batches:
-        full_x = torch.cat((full_x, batched_x), 0)
-        full_y = torch.cat((full_y, batched_y), 0)
-    return [(full_x, full_y)]  # 变成张量的形式
 
 def add_args(parser):
     """
@@ -92,7 +85,7 @@ def add_args(parser):
     parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
                         help='learning rate (default: 0.001)')
 
-    parser.add_argument('--wd', help='weight decay parameter;', type=float, default=0.001)
+    parser.add_argument('--wd', help='weight decay parameter;', type=float, default=0.0001)
 
     parser.add_argument('--epochs', type=int, default=5, metavar='EP',
                         help='how many epochs will be trained locally')
@@ -133,9 +126,10 @@ def add_args(parser):
     parser.add_argument('--compression_rate',type=float, help='compression_rate')
 
     parser.add_argument('--compression_alpha', type=float, help='compression_alpha')
+
+
     args = parser.parse_args()
     return args
-
 
 
 def load_data(args, dataset_name):
@@ -242,24 +236,10 @@ def load_data(args, dataset_name):
         train_data_local_num_dict, train_data_local_dict, test_data_local_dict, \
         class_num = data_loader(args.dataset, args.data_dir, args.partition_method,
                                 args.partition_alpha, args.client_num_in_total, args.batch_size)
-
-
-    #train_data_local_num_dict = {0: sum(user_train_data_num for user_train_data_num in train_data_local_num_dict.values())}
-    #train_data_local_dict = {0: [batch for cid in sorted(train_data_local_dict.keys()) for batch in train_data_local_dict[cid]]}  # 聚合所有的数据
-    #test_data_local_dict = {0: [batch for cid in sorted(test_data_local_dict.keys()) for batch in test_data_local_dict[cid]]}
-    '''
-    train_data_global = combine_batches(train_data_global)
-    test_data_global = combine_batches(test_data_global)
-    train_data_local_dict = {cid: combine_batches(train_data_local_dict[cid]) for cid in train_data_local_dict.keys()}
-    test_data_local_dict = {cid: combine_batches(test_data_local_dict[cid]) for cid in test_data_local_dict.keys()}
-    '''
-    #print(train_data_local_dict.keys())
     dataset = [train_data_num, test_data_num, train_data_global, test_data_global,
                train_data_local_num_dict, train_data_local_dict, test_data_local_dict, class_num]
     return dataset
 
-
-    #return sum(p.numel() for p in model.parameters())
 
 def create_model(args, model_name, output_dim):
     logging.info("create_model. model_name = %s, output_dim = %s" % (model_name, output_dim))
@@ -291,7 +271,7 @@ def create_model(args, model_name, output_dim):
         model = mobilenet(class_num=output_dim)
     elif model_name == "cnn_test":
         model = CNN_Test(False)
-    elif  model_name == "cnn":
+    elif model_name == "cnn":
         model = CNN_DropOut(True)
     # TODO
     elif model_name == 'mobilenet_v3':
@@ -299,10 +279,12 @@ def create_model(args, model_name, output_dim):
         model = MobileNetV3(model_mode='LARGE')
     elif model_name == 'efficientnet':
         model = EfficientNet()
-
     model_summary= summary(model, (1,28*28))
 
     print("param num ",model_summary.item())
+
+
+
     return model, model_summary.item()
 
 
@@ -318,12 +300,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     args = add_args(parser)
     logging.info(args)
-
     if args.robust == 0:
         robust = False
     else:
         robust = True
-
     # customize the process name
     str_process_name = "FedAvg (distributed):" + str(process_id)
     setproctitle.setproctitle(str_process_name)
@@ -341,7 +321,6 @@ if __name__ == "__main__":
                  ", process Name = " + str(psutil.Process(os.getpid())))
 
     # initialize the wandb machine learning experimental tracking platform (https://www.wandb.com/).
-
     if process_id == 0:
         wandb.init(
             # project="federated_nas",
@@ -351,6 +330,7 @@ if __name__ == "__main__":
                 args.lr),
             config=args
         )
+
     # Set the random seed. The np.random seed determines the dataset partition.
     # The torch_manual_seed determines the initial weight.
     # We fix these two, so that we can reproduce the result.
@@ -365,7 +345,6 @@ if __name__ == "__main__":
 
     # load data
     dataset = load_data(args, args.dataset)
-
     [train_data_num, test_data_num, train_data_global, test_data_global,
      train_data_local_num_dict, train_data_local_dict, test_data_local_dict, class_num] = dataset
 
@@ -374,23 +353,11 @@ if __name__ == "__main__":
     # In this case, please use our FedML distributed version (./fedml_experiments/distributed_fedavg)
     model, param_num = create_model(args, model_name=args.model, output_dim=dataset[7])
 
-
     # try:
         # start "federated averaging (FedAvg)"
-    #print("train_data_num",train_data_num)
-    #print("test_data_num",test_data_num)
-    #print("train_data_global",train_data_global)
-    #print("test_data_global",test_data_global)
-    #print("train_data_local_num_dict",train_data_local_num_dict)
-    #print("train_data_local_dict",train_data_local_dict)
-    #print("test_data_local_dict",test_data_local_dict)
-    #print("classnum", class_num)
-
-
     FedML_FedAvg_distributed(process_id, worker_number, device, comm,
-                             model, param_num, train_data_num, train_data_global, test_data_global,
+                             model, param_num,train_data_num, train_data_global, test_data_global,
                              train_data_local_num_dict, train_data_local_dict, test_data_local_dict, args, robust)
-
     # except Exception as e:
     #     print(e)
     #     logging.info('traceback.format_exc():\n%s' % traceback.format_exc())

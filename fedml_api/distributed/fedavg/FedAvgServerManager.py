@@ -42,7 +42,7 @@ class FedAVGServerManager(ServerManager):
         self.rate = args.compression_rate
         self.alpha = args.compression_alpha
         self.samples = int(self.params_count / self.rate)
-
+        self.aggregate = np.zeros((self.params_count,1))
         for idx in range(self.worker_num):
             self.flag_client_uploaded_dict[idx] = False
 
@@ -93,12 +93,14 @@ class FedAVGServerManager(ServerManager):
             #model_weights = self.model_weights.tolist()
 
             res1 = res1[0]
-
-            #print("res",len(res))
+            #decrypted = np.array(res1).reshape(-1, 1)
+            #difference = decrypted -self.aggregate
+            #print("difference",sum(difference))
             for i,r in enumerate(res1):
                 #print(res1[i])
-                res1[i] = res1[i]/pow(10,6)
+                res1[i] = res1[i]/pow(10,3)
                 #print(res1[i])
+            #difference =
             #print("decrypted res,",res1[0:10])
             #print("decrypted res,",res1[len(res1)-10:])
             print("cost time:", time.time()-self.init_time)
@@ -132,6 +134,7 @@ class FedAVGServerManager(ServerManager):
                                                                  self.worker_num)
             self.if_check_client_status = True
             self.aggregator.reset_pcks_dict()
+            self.aggregate = np.zeros((self.params_count,1))
             #model_params = np.zeros((1,self.params_count))
             for receiver_id in range(1, self.size):
 
@@ -177,9 +180,11 @@ class FedAVGServerManager(ServerManager):
         #print("receive enc_model from client",sender_id)
         enc_model_params = msg_params.get(MyMessage.MSG_ARG_KEY_ENCRYPTED_MODEL_PARAMS)
         local_sample_number = msg_params.get(MyMessage.MSG_ARG_KEY_NUM_SAMPLES)
+        #model_weights = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
         #self.aggregator.add_local_trained_result(sender_id - 1, enc_model_params, local_sample_number)
         self.aggregator.add_enc_model_params(sender_id - 1, enc_model_params, local_sample_number)
         #print(self.aggregator.flag_client_model_uploaded_dict)
+        #self.aggregate += model_weights
         b_all_received = self.aggregator.check_whether_all_receive()
         if b_all_received:
             encModelList = []

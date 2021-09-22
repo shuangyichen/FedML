@@ -126,10 +126,8 @@ class CNN_DropOut(torch.nn.Module):
         #self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x):
-        #print(x.shape)
-        #x = torch.unsqueeze(x, 1)
         x = torch.reshape(x,(-1,1,28,28))
-        #print(x.shape)
+        #x = torch.unsqueeze(x, 1)
         x = self.conv2d_1(x)
         x = self.relu(x)
         x = self.conv2d_2(x)
@@ -143,6 +141,7 @@ class CNN_DropOut(torch.nn.Module):
         x = self.linear_2(x)
         #x = self.softmax(self.linear_2(x))
         return x
+
 
 
 class CNN_Test(torch.nn.Module):
@@ -183,5 +182,3 @@ class CNN_Test(torch.nn.Module):
         x = self.linear_2(x)
         #x = self.softmax(self.linear_2(x))
         return x
-
-

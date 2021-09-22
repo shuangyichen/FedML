@@ -32,6 +32,7 @@ func genCollectivePK(cpk []uint64,numPeers int, logDegree uint64, scale float64)
 
     //params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65537)
     params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65929217)
+    //params, err := bfv.NewParametersFromModuli(logDegree, moduli,2652353003)
     if err != nil {
         panic(err)
     }

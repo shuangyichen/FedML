@@ -36,6 +36,7 @@ func encryptMsg(inputs []int64, cpk []uint64, shamirShare []uint64, robust bool,
     moduli := &bfv.Moduli{[]uint64{ringPrime}, []uint64{ringPrime}, []uint64{ringPrime}}
     //params, err := bfv.NewParametersFromModuli(logDegree, moduli,65537)
     params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65929217)
+    //params, err := bfv.NewParametersFromModuli(logDegree, moduli,2652353003)
     //params.SetScale(scale)
     //params.SetLogSlots(logDegree - 1)
     if err != nil {
@@ -156,6 +157,7 @@ func genPCKSShare(enc_aggr_model []uint64, TPK []uint64,shamirShareString []uint
     moduli := &bfv.Moduli{[]uint64{ringPrime}, []uint64{ringPrime}, []uint64{ringPrime}}
 	//params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65537)
 	params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65929217)
+    //params, err := bfv.NewParametersFromModuli(logDegree, moduli,2652353003)
     //params.SetScale(scale)
 	//params.SetLogSlots(logDegree - 1)
 	if err != nil {

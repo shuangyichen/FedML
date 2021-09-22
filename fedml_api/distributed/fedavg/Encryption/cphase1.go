@@ -27,6 +27,7 @@ func genShamirShareString_robust(shamirShare []uint64, numPeers int, k int, logD
     moduli := &bfv.Moduli{[]uint64{ringPrime}, []uint64{ringPrime}, []uint64{ringPrime}}
     //params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65537)
     params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65929217)
+    //params, err := bfv.NewParametersFromModuli(logDegree, moduli,2652353003)
     if err != nil {
         panic(err)
     }
@@ -77,6 +78,8 @@ func genShamirShares(numPeers int, k int, logDegree uint64, scale float64, resil
     moduli := &bfv.Moduli{[]uint64{ringPrime}, []uint64{ringPrime}, []uint64{ringPrime}}
 	//params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65537)
 	params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65929217)
+
+    //params, err := bfv.NewParametersFromModuli(logDegree, moduli,2652353003)
     //params.SetScale(scale)
 	//params.SetLogSlots(logDegree - 1)
 	lattigoPRNG, err := utils.NewKeyedPRNG([]byte{'l', 'a', 't', 't', 'i', 'g', 'o'})
@@ -159,6 +162,7 @@ func genCollectiveKeyShare_not_robust(numPeers int, k int, logDegree uint64, sca
     //fmt.Println("client go log Degree",logDegree)  
     //params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65537)
     params, err := bfv.NewParametersFromModuli(logDegree, moduli, 65929217)
+    //params, err := bfv.NewParametersFromModuli(logDegree, moduli,2652353003)
     //params.SetScale(scale)
     //params.SetLogSlots(logDegree - 1)
     lattigoPRNG, err := utils.NewKeyedPRNG([]byte{'l', 'a', 't', 't', 'i', 'g', 'o'})

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bash                                                             
 
 CLIENT_NUM=$1
 WORKER_NUM=$2
@@ -38,4 +38,4 @@ mpirun -np $PROCESS_NUM python3 ./main_fedavg.py \
   --robust $ROBUST \
   --compression $COMPRESSION \
   --compression_rate $COMPRESSION_RATE \
-  --compression_alpha $COMPRESSION_ALPHA   
+  --compression_alpha $COMPRESSION_ALPHA    

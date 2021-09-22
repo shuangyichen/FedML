@@ -71,23 +71,6 @@ typedef struct { void *data; GoInt len; GoInt cap; } GoSlice;
 extern "C" {
 #endif
 
-extern GoUintptr genCollectivePK(GoSlice cpk, GoInt numPeers, GoUint64 logDegree, GoFloat64 scale);
-extern char* genDecryptionCoefficients(GoString clientsParticipated);
-
-/* Return type for aggregateEncrypted */
-struct aggregateEncrypted_return {
-	GoUintptr r0; /* encResultList */
-	GoInt r1; /* numPieces */
-};
-extern struct aggregateEncrypted_return aggregateEncrypted(GoSlice encInputList, GoInt numPeers, GoUint64 logDegree, GoFloat64 scale, GoInt inputLength);
-
-/* Return type for genTPK */
-struct genTPK_return {
-	GoUintptr r0; /* tpkPointer */
-	GoUintptr r1; /* tskPointer */
-};
-extern struct genTPK_return genTPK(GoUint64 logDegree, GoFloat64 scale);
-extern GoUintptr decrypt(GoString client_chosen, GoSlice tskList, GoSlice pcksShareList, GoSlice encResultList, GoUint64 logDegree, GoFloat64 scale, GoInt inputLength, GoInt numPeers);
 extern GoUintptr genShamirShareString_robust(GoSlice shamirShare, GoInt numPeers, GoInt k, GoUint64 logDegree, GoFloat64 scale, GoFloat64 resiliency);
 
 /* Return type for genShamirShares */
@@ -113,6 +96,23 @@ struct encryptMsg_return {
 };
 extern struct encryptMsg_return encryptMsg(GoSlice inputs, GoSlice cpk, GoSlice shamirShare, GoUint8 robust, GoUint64 logDegree, GoFloat64 scale, GoInt numPeers);
 extern GoUintptr genPCKSShare(GoSlice enc_aggr_model, GoSlice TPK, GoSlice shamirShareString, GoInt numPeers, GoUint64 decryptionCoefficient, GoInt inputLength, GoUint8 robust, GoUint64 logDegree, GoFloat64 scale);
+extern GoUintptr genCollectivePK(GoSlice cpk, GoInt numPeers, GoUint64 logDegree, GoFloat64 scale);
+extern char* genDecryptionCoefficients(GoString clientsParticipated);
+
+/* Return type for aggregateEncrypted */
+struct aggregateEncrypted_return {
+	GoUintptr r0; /* encResultList */
+	GoInt r1; /* numPieces */
+};
+extern struct aggregateEncrypted_return aggregateEncrypted(GoSlice encInputList, GoInt numPeers, GoUint64 logDegree, GoFloat64 scale, GoInt inputLength);
+
+/* Return type for genTPK */
+struct genTPK_return {
+	GoUintptr r0; /* tpkPointer */
+	GoUintptr r1; /* tskPointer */
+};
+extern struct genTPK_return genTPK(GoUint64 logDegree, GoFloat64 scale);
+extern GoUintptr decrypt(GoString client_chosen, GoSlice tskList, GoSlice pcksShareList, GoSlice encResultList, GoUint64 logDegree, GoFloat64 scale, GoInt inputLength, GoInt numPeers);
 
 #ifdef __cplusplus
 }

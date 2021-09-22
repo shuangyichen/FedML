@@ -1,0 +1,2 @@
+training is finished! 
+Namespace(backend='MPI', batch_size=256, ci=0, client_num_in_total=1000, client_num_per_round=2, client_optimizer='sgd', comm_round=200, data_dir='./../../../data/mnist', dataset='mnist', epochs=1, frequency_of_the_test=1, gpu_mapping_file=None, gpu_mapping_key=None, gpu_num_per_server=4, gpu_server_num=1, grpc_ipconfig_path='grpc_ipconfig.csv', is_mobile=1, lr=0.1, model='cnn', partition_alpha=0.5, partition_method='hetero', round_idx=199, wd=0.0001)

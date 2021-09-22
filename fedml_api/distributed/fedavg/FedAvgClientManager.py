@@ -83,8 +83,8 @@ class FedAVGClientManager(ClientManager):
         model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
         client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
 
-        #if self.args.is_mobile == 1:
-        #    model_params = transform_list_to_tensor(model_params)
+        if self.args.is_mobile == 1:
+            model_params = transform_list_to_tensor(model_params)
         self.trainer.update_model(model_params)
         self.trainer.update_dataset(int(client_index))
         #self.trainer.update_dataset(0)
@@ -130,12 +130,12 @@ class FedAVGClientManager(ClientManager):
         #    weights = -1*10*np.ones((self.params_count,1), dtype=np.int)
         #weights = np.random.randint(-1*pow(10,4),pow(10,4),size = self.params_count)
         '''
-        weights = weights*pow(10,6)
-        weights = np.round(weights)
-        weights = np.array(weights, dtype = np.int)
+        pweights = weights*pow(10,3)
+        pweights = np.round(pweights)
+        pweights = np.array(pweights, dtype = np.int)
         #print("weights", weights[0:10])
         #print("weights", weights[self.params_count-10:])
-        weights = np.clip(weights,-1*pow(10,7),pow(10,7))
+        pweights = np.clip(pweights,-1*pow(10,3),pow(10,3))
         '''
         weights = weights.reshape(-1,1)
         error_compensated = weights + self.error
@@ -147,10 +147,10 @@ class FedAVGClientManager(ClientManager):
         else:
             compressed = weights
 
-        compressed = compressed*pow(10,6)
+        compressed = compressed*pow(10,3)
         compressed = np.round(compressed)
         compressed = np.array(compressed, dtype = np.int)
-        compressed = np.clip(compressed,-1*pow(10,7),pow(10,7))
+        compressed = np.clip(compressed,-1*pow(10,3),pow(10,3))
         enc_weights, self.numPieces= self.encrypt(compressed.reshape((-1,1)))
 
         self.send_model_to_server(0, enc_weights.tolist(), local_sample_num)
@@ -231,6 +231,7 @@ class FedAVGClientManager(ClientManager):
     def send_model_to_server(self, receive_id, weights, local_sample_num):
         message = Message(MyMessage.MSG_TYPE_C2S_SEND_ENC_MODEL_TO_SERVER, self.get_sender_id(), receive_id)
         message.add_params(MyMessage.MSG_ARG_KEY_ENCRYPTED_MODEL_PARAMS, weights)
+        #message.add_params(MyMessage.MSG_ARG_KEY_MODEL_PARAMS, pure_weights)
         message.add_params(MyMessage.MSG_ARG_KEY_NUM_SAMPLES, local_sample_num)
         #message.add_params(MyMessage.MSG_ARG_KEY_MODEL_PARAMS, pure_weights)
         self.send_message(message)
