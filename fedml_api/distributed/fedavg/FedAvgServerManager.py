@@ -3,7 +3,7 @@ import os, signal
 import sys
 
 from .message_define import MyMessage
-from .utils import random_matrix, transform_tensor_to_list, post_complete_message_to_sweep_process
+from .utils import random_matrix, transform_tensor_to_list, post_complete_message_to_sweep_process, transform_dict_list,transform_list_to_tensor
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../../../")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../../../../FedML")))
@@ -105,14 +105,22 @@ class FedAVGServerManager(ServerManager):
             #print("decrypted res,",res1[len(res1)-10:])
             print("cost time:", time.time()-self.init_time)
 
-
+            model_params = self.aggregator.get_global_model_params()
+            old_weights = transform_dict_list(transform_list_to_tensor(model_params))
+            old_weights = old_weights.reshape((-1,1))
             res2 = np.array(res1).reshape(-1, 1)/self.worker_num
 
             if self.compression == 1:
                 phi = random_matrix(self.alpha/2/self.samples, self.samples, self.params_count, seed = self.round_idx)
                 res2 = phi.transpose().dot(res2)
+                res2 = old_weights - res2
+            #elif self.compression == 0:
+
+
+            #else:
+            #    res2 = np.array(res1).reshape(-1, 1)/self.worker_num
             #print("res", res[0:5])
-            model_params = self.aggregator.get_global_model_params()
+            #model_params = self.aggregator.get_global_model_params()
 
             self.shape = {}
             idx = 0

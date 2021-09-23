@@ -82,9 +82,10 @@ class FedAVGClientManager(ClientManager):
     def handle_message_receive_model_from_server(self, msg_params):
         model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
         client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
-
+        #self.old_weights = transform_dict_list(model_params)
         if self.args.is_mobile == 1:
             model_params = transform_list_to_tensor(model_params)
+        self.old_weights = transform_dict_list(model_params)
         self.trainer.update_model(model_params)
         self.trainer.update_dataset(int(client_index))
         #self.trainer.update_dataset(0)
@@ -99,11 +100,11 @@ class FedAVGClientManager(ClientManager):
     def handle_message_init(self, msg_params):
         global_model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
         client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
-
+        #self.old_weights = transform_dict_list(transform_list_to_tensor(global_model_params))
         #print("model param", global_model_params)
         if self.args.is_mobile == 1:
             global_model_params = transform_list_to_tensor(global_model_params)
-
+        self.old_weights = transform_dict_list(global_model_params)
         self.trainer.update_model(global_model_params)
         self.trainer.update_dataset(int(client_index))
         self.round_idx = 0
@@ -138,7 +139,8 @@ class FedAVGClientManager(ClientManager):
         pweights = np.clip(pweights,-1*pow(10,3),pow(10,3))
         '''
         weights = weights.reshape(-1,1)
-        error_compensated = weights + self.error
+        gradients = self.old_weights - weights
+        error_compensated = gradients + self.error
         if self.compression==1:
             phi = random_matrix(self.alpha/2/self.samples, self.samples,self.params_count,seed = self.round_idx)
             compressed = self.beta * phi.dot(error_compensated)
