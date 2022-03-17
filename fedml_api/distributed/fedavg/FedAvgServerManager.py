@@ -141,7 +141,7 @@ class FedAVGServerManager(ServerManager):
             client_indexes = self.aggregator.client_sampling(self.round_idx, self.args.client_num_in_total,
                                                                  self.worker_num)
             self.if_check_client_status = True
-            self.aggregator.reset_pcks_dict()
+            self.aggregator.reset_dict()
             self.aggregate = np.zeros((self.params_count,1))
             #model_params = np.zeros((1,self.params_count))
             for receiver_id in range(1, self.size):
@@ -154,34 +154,36 @@ class FedAVGServerManager(ServerManager):
         sender_id = msg_params.get(MyMessage.MSG_ARG_KEY_SENDER)
         #print("receive liveness status announcement from client",sender_id)
         liveness_status = msg_params.get(MyMessage.MSG_ARG_KEY_LIVENESS_STATUS)
-        if self.if_check_client_status:
-            self.liveness_status[sender_id-1] = liveness_status
-            self.flag_client_uploaded_dict[sender_id-1] = True
-            partial_received, self.client_chosen = self.check_whether_partial_receive()
+        self.aggregator.flag_client_liveness_uploaded_dict[sender_id-1] = True
+        check_liveness = self.aggregator.check_whether_liveness_all_receive(self.client_chosen)
+        if check_liveness:
+            #self.liveness_status[sender_id-1] = liveness_status
+            #self.flag_client_uploaded_dict[sender_id-1] = True
+            #partial_received, self.client_chosen = self.check_whether_partial_receive()
 
-            if partial_received:
-                self.if_check_client_status = False
-                if self.robust:
-                    tpk,tsk= genTPK(self.log_degree,self.log_scale)
-                    self.tsk = tsk.tolist()
-                    client_chosen_list = ','.join(self.client_chosen)
-                    res = genDecryptionCoefficients(client_chosen_list)
-                    DecryptionCoefficients = res.decode()
-                    DCoeff = DecryptionCoefficients.split('\n')[0]
-                    DCoeff = DCoeff.split(',')
-                    for i in range(len(self.client_chosen)):
-                        Decryption_info = DCoeff[i].split(':')
-                        receive_id = int(Decryption_info[0])
-                        decryption_coeffi = int(Decryption_info[1])
-                        self.send_decryption_info(receive_id,1,decryption_coeffi,tpk.tolist())
-                else:
-                    tpk,tsk= genTPK(self.log_degree,self.log_scale)
-                    self.tsk = tsk.tolist()
+            #if partial_received:
+            #self.if_check_client_status = False
+            if self.robust:
+                tpk,tsk= genTPK(self.log_degree,self.log_scale)
+                self.tsk = tsk.tolist()
+                client_chosen_list = ','.join(self.client_chosen)
+                res = genDecryptionCoefficients(client_chosen_list)
+                DecryptionCoefficients = res.decode()
+                DCoeff = DecryptionCoefficients.split('\n')[0]
+                DCoeff = DCoeff.split(',')
+                for i in range(len(self.client_chosen)):
+                    Decryption_info = DCoeff[i].split(':')
+                    receive_id = int(Decryption_info[0])
+                    decryption_coeffi = int(Decryption_info[1])
+                    self.send_decryption_info(receive_id,1,decryption_coeffi,tpk.tolist())
+            else:
+                tpk,tsk= genTPK(self.log_degree,self.log_scale)
+                self.tsk = tsk.tolist()
 
 
-                    for key in self.liveness_status.keys():
-                        if self.liveness_status[key] ==1:
-                            self.send_decryption_info(key+1,1,0,tpk.tolist())
+                for key in self.liveness_status.keys():
+                    if self.liveness_status[key] ==1:
+                        self.send_decryption_info(key+1,1,0,tpk.tolist())
 
     def handle_message_receive_enc_model_from_client(self,msg_params):
         sender_id = msg_params.get(MyMessage.MSG_ARG_KEY_SENDER)
@@ -193,16 +195,21 @@ class FedAVGServerManager(ServerManager):
         self.aggregator.add_enc_model_params(sender_id - 1, enc_model_params, local_sample_number)
         #print(self.aggregator.flag_client_model_uploaded_dict)
         #self.aggregate += model_weights
-        b_received, self.client_chosen = self.check_whether_partial_receive()
-        if b_received:
-            print("Clients participated in current iterarion: ",self.client_chosen)
+        if self.if_check_client_status:
+            self.liveness_status[sender_id-1] = 1
+            self.flag_client_uploaded_dict[sender_id-1] = True
+            b_received, self.client_chosen = self.check_whether_partial_receive()
+            if b_received:
+                print("Clients participated in current iterarion: ",self.client_chosen)
 
-            encModelList = []
-            for i,model in enumerate(self.aggregator.enc_model_list):
-                if model!=None:
-                    encModelList += model
-            aggr_enc_model_list = aggregateEncrypted(encModelList,self.k,self.log_degree,self.log_scale,self.samples)
-            self.aggr_enc_model_list = aggr_enc_model_list.tolist()
+                encModelList = []
+                for i,model in enumerate(self.aggregator.enc_model_list):
+                    if model!=None:
+                        encModelList += model
+                aggr_enc_model_list = aggregateEncrypted(encModelList,self.k,self.log_degree,self.log_scale,self.samples)
+                self.aggr_enc_model_list = aggr_enc_model_list.tolist()
+                for idx in self.client_chosen:
+                    self.send_message_aggregated_encrypted_model_to_client(int(idx), self.aggr_enc_model_list)
             #lenth = len(self.aggr_enc_model_list)
             #print("self.aggr_enc_model_list",self.aggr_enc_model_list[lenth-10:lenth])
 
