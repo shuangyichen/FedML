@@ -193,21 +193,24 @@ class FedAVGServerManager(ServerManager):
         self.aggregator.add_enc_model_params(sender_id - 1, enc_model_params, local_sample_number)
         #print(self.aggregator.flag_client_model_uploaded_dict)
         #self.aggregate += model_weights
-        b_all_received = self.aggregator.check_whether_all_receive()
-        if b_all_received:
+        b_received, self.client_chosen = self.check_whether_partial_receive()
+        if b_received:
+            print("Clients participated in current iterarion: ",self.client_chosen)
+
             encModelList = []
             for i,model in enumerate(self.aggregator.enc_model_list):
-                encModelList += model
-            aggr_enc_model_list = aggregateEncrypted(encModelList,self.worker_num,self.log_degree,self.log_scale,self.samples)
+                if model!=None:
+                    encModelList += model
+            aggr_enc_model_list = aggregateEncrypted(encModelList,self.k,self.log_degree,self.log_scale,self.samples)
             self.aggr_enc_model_list = aggr_enc_model_list.tolist()
-            lenth = len(self.aggr_enc_model_list)
+            #lenth = len(self.aggr_enc_model_list)
             #print("self.aggr_enc_model_list",self.aggr_enc_model_list[lenth-10:lenth])
 
             #client_indexes = self.aggregator.client_sampling(self.round_idx, self.args.client_num_in_total,
              #                                                    self.args.client_num_per_round)
 
-            for receiver_id in range(1, self.size):
-                self.send_message_aggregated_encrypted_model_to_client(receiver_id, self.aggr_enc_model_list)
+            #for receiver_id in range(1, self.size):
+            #    self.send_message_aggregated_encrypted_model_to_client(receiver_id, self.aggr_enc_model_list)
 
 
 
