@@ -145,7 +145,7 @@ class FedAVGServerManager(ServerManager):
             self.aggregate = np.zeros((self.params_count,1))
             #model_params = np.zeros((1,self.params_count))
             for receiver_id in range(1, self.size):
-                print("sync model to client "receiver_id)
+                print("sync model to client ",receiver_id)
                 self.send_message_sync_model_to_client(receiver_id, model_params,
                                                        client_indexes[receiver_id - 1])
 
