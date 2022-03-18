@@ -84,7 +84,7 @@ class FedAVGClientManager(ClientManager):
 
     #def handle_message_receive_model_from_server(self):
     def handle_message_receive_model_from_server(self, msg_params):
-        print("receive syn model", self.get_sender_id())
+        #print("receive syn model", self.get_sender_id())
         model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
         client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
         self.round_idx = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_ROUND)
@@ -195,7 +195,7 @@ class FedAVGClientManager(ClientManager):
     def handle_message_enc_aggregated_model_from_server(self,msg_params):
         #client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
         self.enc_aggregated_model = msg_params.get(MyMessage.MSG_ARG_KEY_ENCRYPTED_MODEL_PARAMS)
-        print("client receive model:",self.get_sender_id())
+        #print("client receive model:",self.get_sender_id())
         self.announce_liveness_status()
 
     def announce_liveness_status(self):

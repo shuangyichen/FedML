@@ -223,7 +223,7 @@ class FedAVGServerManager(ServerManager):
         #    self.flag_client_uploaded_dict[sender_id-1] = True
         #    b_received, self.client_chosen = self.check_whether_partial_receive()
         if check_enc_model_all_reveived:
-            print("Clients participated in current iterarion: ",self.client_chosen)
+            #print("Clients participated in current iterarion: ",self.client_chosen)
             encModelList = []
             for i,model in enumerate(self.aggregator.enc_model_list):
                 if model!=None:
