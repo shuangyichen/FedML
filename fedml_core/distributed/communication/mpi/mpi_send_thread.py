@@ -25,8 +25,8 @@ class MPISendThread(threading.Thread):
                     msg = self.q.get()
                     dest_id = msg.get(Message.MSG_ARG_KEY_RECEIVER)
                     print("********************************")
-                    self.comm.bsend(msg.to_string(), dest=dest_id)
-                    #if not req.test():
+                    req = self.comm.isend(msg.to_string(), dest=dest_id)
+                    req.test()
                     #    req.cancel()
                     print(dest_id)
                 else:
