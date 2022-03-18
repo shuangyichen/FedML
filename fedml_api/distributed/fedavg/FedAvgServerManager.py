@@ -43,6 +43,8 @@ class FedAVGServerManager(ServerManager):
         self.alpha = args.compression_alpha
         self.samples = int(self.params_count / self.rate)
         self.aggregate = np.zeros((self.params_count,1))
+        self.client_list=[]
+        self.cur_round = 0
         for idx in range(self.worker_num):
             self.flag_client_uploaded_dict[idx] = False
 
@@ -54,6 +56,7 @@ class FedAVGServerManager(ServerManager):
         message = Message(MyMessage.MSG_TYPE_S2C_SYNC_MODEL_TO_CLIENT, self.get_sender_id(), receive_id)
         message.add_params(MyMessage.MSG_ARG_KEY_MODEL_PARAMS, global_model_params)
         message.add_params(MyMessage.MSG_ARG_KEY_CLIENT_INDEX, str(client_index))
+        message.add_params(MyMessage.MSG_ARG_KEY_CLIENT_ROUND,self.cur_round)
         self.send_message(message)
 
     def send_init_msg(self):
@@ -64,9 +67,16 @@ class FedAVGServerManager(ServerManager):
         if self.args.is_mobile == 1:
             global_model_params = transform_tensor_to_list(global_model_params)
         self.init_time = time.time()
-        for process_id in range(1, self.size):
-            self.send_message_init_config(process_id, global_model_params, client_indexes[process_id - 1])
-
+        #for process_id in range(1, self.size):
+        for i,process_id in enumerate(self.client_list):
+            if i<self.k:
+                self.send_message_init_config(process_id, global_model_params, client_indexes[process_id - 1])
+        self.client_list = self.client_list[0:self.k]
+        self.client_list.sort()
+        self.client_chosen =[]
+        for client in self.client_list:
+            self.client_chosen.append(str(client))
+        print("Clients participated in current iterarion: ",self.client_chosen)
 
     def register_message_receive_handlers(self):
         #self.register_message_receive_handler(MyMessage.MSG_TYPE_C2S_SEND_SS_TO_SERVER,self.handle_message_SS_from_client)
@@ -76,6 +86,23 @@ class FedAVGServerManager(ServerManager):
         self.register_message_receive_handler(MyMessage.MSG_TYPE_C2S_SEND_ENC_MODEL_TO_SERVER,self.handle_message_receive_enc_model_from_client)
         self.register_message_receive_handler(MyMessage.MSG_TYPE_C2S_SEND_LIVENESS_STATUS,self.handle_message_receive_liveness_status_from_client)
         self.register_message_receive_handler(MyMessage.MSG_TYPE_C2S_PCKS_SHARE,self.handle_message_receive_pcks_share)
+        self.register_message_receive_handler(MyMessage.MSG_TYPE_C2S_SEND_ROUND_LIVE,self.handle_message_round_live)
+
+
+    def handle_message_round_live(self,msg_params):
+        sender_id = msg_params.get(MyMessage.MSG_ARG_KEY_SENDER)
+        if self.if_check_client_status:
+            self.liveness_status[sender_id-1] = 1
+            self.flag_client_uploaded_dict[sender_id-1] = True
+            b_received, self.client_chosen = self.check_whether_partial_receive()
+            if b_received:
+                print("Clients participated in current iterarion: ",self.client_chosen)
+                client_indexes = self.aggregator.client_sampling(self.round_idx, self.args.client_num_in_total,
+                                                                 self.worker_num)
+                model_params = self.aggregator.get_global_model_params()
+                for idx in self.client_chosen:
+                    self.send_message_sync_model_to_client(int(idx), model_params,
+                                                       client_indexes[int(idx)- 1])
 
     def handle_message_receive_pcks_share(self,msg_params):
         sender_id = msg_params.get(MyMessage.MSG_ARG_KEY_SENDER)
@@ -143,11 +170,10 @@ class FedAVGServerManager(ServerManager):
             self.if_check_client_status = True
             self.aggregator.reset_dict()
             self.aggregate = np.zeros((self.params_count,1))
+            self.cur_round+=1
             #model_params = np.zeros((1,self.params_count))
             for receiver_id in range(1, self.size):
-                print("sync model to client ",receiver_id)
-                self.send_message_sync_model_to_client(receiver_id, model_params,
-                                                       client_indexes[receiver_id - 1])
+                self.send_message_round_done_to_client(receiver_id)
 
 
     def handle_message_receive_liveness_status_from_client(self,msg_params):
@@ -190,26 +216,22 @@ class FedAVGServerManager(ServerManager):
         #print("receive enc_model from client",sender_id)
         enc_model_params = msg_params.get(MyMessage.MSG_ARG_KEY_ENCRYPTED_MODEL_PARAMS)
         local_sample_number = msg_params.get(MyMessage.MSG_ARG_KEY_NUM_SAMPLES)
-        #model_weights = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
-        #self.aggregator.add_local_trained_result(sender_id - 1, enc_model_params, local_sample_number)
         self.aggregator.add_enc_model_params(sender_id - 1, enc_model_params, local_sample_number)
-        #print(self.aggregator.flag_client_model_uploaded_dict)
-        #self.aggregate += model_weights
-        if self.if_check_client_status:
-            self.liveness_status[sender_id-1] = 1
-            self.flag_client_uploaded_dict[sender_id-1] = True
-            b_received, self.client_chosen = self.check_whether_partial_receive()
-            if b_received:
-                print("Clients participated in current iterarion: ",self.client_chosen)
-
-                encModelList = []
-                for i,model in enumerate(self.aggregator.enc_model_list):
-                    if model!=None:
-                        encModelList += model
-                aggr_enc_model_list = aggregateEncrypted(encModelList,self.k,self.log_degree,self.log_scale,self.samples)
-                self.aggr_enc_model_list = aggr_enc_model_list.tolist()
-                for idx in self.client_chosen:
-                    self.send_message_aggregated_encrypted_model_to_client(int(idx), self.aggr_enc_model_list)
+        check_enc_model_all_reveived = self.aggregator.check_whether_enc_all_receive(self.client_chosen)
+        #if self.if_check_client_status:
+        #    self.liveness_status[sender_id-1] = 1
+        #    self.flag_client_uploaded_dict[sender_id-1] = True
+        #    b_received, self.client_chosen = self.check_whether_partial_receive()
+        if check_enc_model_all_reveived:
+            print("Clients participated in current iterarion: ",self.client_chosen)
+            encModelList = []
+            for i,model in enumerate(self.aggregator.enc_model_list):
+                if model!=None:
+                    encModelList += model
+            aggr_enc_model_list = aggregateEncrypted(encModelList,self.k,self.log_degree,self.log_scale,self.samples)
+            self.aggr_enc_model_list = aggr_enc_model_list.tolist()
+            for idx in self.client_chosen:
+                self.send_message_aggregated_encrypted_model_to_client(int(idx), self.aggr_enc_model_list)
             #lenth = len(self.aggr_enc_model_list)
             #print("self.aggr_enc_model_list",self.aggr_enc_model_list[lenth-10:lenth])
 
@@ -243,6 +265,7 @@ class FedAVGServerManager(ServerManager):
         sender_id = msg_params.get(MyMessage.MSG_ARG_KEY_SENDER)
         self.flag_client_uploaded_dict[sender_id-1] = True
         b_all_received = self.check_whether_all_receive()
+        self.client_list.append(sender_id)
         if b_all_received:
             self.send_init_msg()
 
@@ -279,6 +302,11 @@ class FedAVGServerManager(ServerManager):
         message.add_params(MyMessage.MSG_ARG_KEY_MODEL_PARAMS, global_model_params)
         message.add_params(MyMessage.MSG_ARG_KEY_CLIENT_INDEX, str(client_index))
         self.send_message(message)
+
+    def send_message_round_done_to_client(self,receive_id):
+        message = Message(MyMessage.MSG_TYPE_S2C_ROUND_DONE, self.get_sender_id(), receive_id)
+        self.send_message(message)
+
 
     def check_whether_partial_receive(self):
         status_already_received = 0

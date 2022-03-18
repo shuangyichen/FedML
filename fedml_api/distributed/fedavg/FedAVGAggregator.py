@@ -75,6 +75,15 @@ class FedAVGAggregator(object):
             self.flag_client_liveness_uploaded_dict[idx] = False
 
         return True
+
+    def check_whether_enc_all_receive(self,client_chosen):
+        for idx in client_chosen:
+            if not self.flag_client_model_uploaded_dict[int(idx)-1]:
+                return False
+        for idx in range(self.worker_num):
+            self.flag_client_model_uploaded_dict[idx] = False
+
+        return True
     def reset_dict(self):
         self.enc_model_list = [None]*self.worker_num
         self.pcks_share_list = [None]*self.worker_num
@@ -135,7 +144,7 @@ class FedAVGAggregator(object):
             num_clients = min(client_num_per_round, client_num_in_total)
             np.random.seed(round_idx)  # make sure for each comparison, we are selecting the same clients each round
             client_indexes = np.random.choice(range(client_num_in_total), num_clients, replace=False)
-        logging.info("client_indexes = %s" % str(client_indexes))
+        #logging.info("client_indexes = %s" % str(client_indexes))
         return client_indexes
 
     def _generate_validation_set(self, num_samples=10000):

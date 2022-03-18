@@ -56,10 +56,14 @@ class FedAVGClientManager(ClientManager):
         self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_SEND_DECRYPTION_INFO,self.handle_message_decryption_info_from_server)
         self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_SYNC_MODEL_TO_CLIENT,self.handle_message_receive_model_from_server)
         self.register_message_receive_handler(MyMessage.MSG_TYPE_C2C_SEND_PROCESSED_SS,self.handle_message_shamirshares)
-
+        self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_ROUND_DONE, self.handle_message_round_init)
 
     def run(self):
         super().run()
+
+    def handle_message_round_init(self,msg_params):
+        self.send_round_liveness_to_sender()
+
 
     def handle_message_shamirshares(self,msg_params):
         sender_id = msg_params.get(MyMessage.MSG_ARG_KEY_SENDER)
@@ -83,6 +87,7 @@ class FedAVGClientManager(ClientManager):
         print("receive syn model", self.get_sender_id())
         model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
         client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
+        self.round_idx = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_ROUND)
         #self.old_weights = transform_dict_list(model_params)
         if self.args.is_mobile == 1:
             model_params = transform_list_to_tensor(model_params)
@@ -92,7 +97,7 @@ class FedAVGClientManager(ClientManager):
         #self.trainer.update_dataset(0)
         #w = transform_dict_list(model_params)
 
-        self.round_idx += 1
+        #self.round_idx += 1
         self.__train()
         if self.round_idx == self.num_rounds - 1:
         #    post_complete_message_to_sweep_process(self.args)
@@ -238,6 +243,10 @@ class FedAVGClientManager(ClientManager):
         #message.add_params(MyMessage.MSG_ARG_KEY_MODEL_PARAMS, pure_weights)
         message.add_params(MyMessage.MSG_ARG_KEY_NUM_SAMPLES, local_sample_num)
         #message.add_params(MyMessage.MSG_ARG_KEY_MODEL_PARAMS, pure_weights)
+        self.send_message(message)
+
+    def send_round_liveness_to_sender(self):
+        message = Message(MyMessage.MSG_TYPE_C2S_SEND_ROUND_LIVE, self.get_sender_id(), 0)
         self.send_message(message)
 
     def encrypt(self,weights):
