@@ -1,4 +1,4 @@
-from .utils import transform_tensor_to_list, transform_dict_list
+from .utils import transform_tensor_to_list
 
 
 class FedAVGTrainer(object):
@@ -35,9 +35,8 @@ class FedAVGTrainer(object):
         weights = self.trainer.get_model_params()
 
         # transform Tensor to list
-        #if self.args.is_mobile == 1:
-        weights = transform_dict_list(weights)
-        #print(len(weights))
+        if self.args.is_mobile == 1:
+            weights = transform_tensor_to_list(weights)
         return weights, self.local_sample_number
 
     def test(self):
