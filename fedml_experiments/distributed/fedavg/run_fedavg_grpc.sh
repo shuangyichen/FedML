@@ -14,6 +14,7 @@ set -x
 
 # infrastructure related
 FL_WORKER_INDEX=$1
+NEW_USER=$2
 CLIENT_NUM=2
 CLIENT_NUM_PER_ROUND=2
 GPU_MAPPING="mapping_FedML_gRPC"
@@ -25,7 +26,7 @@ DISTRIBUTION=hetero
 
 # model and training related
 MODEL=lr
-ROUND=50
+ROUND=100
 EPOCH=2
 BATCH_SIZE=32
 LR=0.01
@@ -59,4 +60,5 @@ python3 ./main_fedavg_rpc.py \
   --robust $ROBUST \
   --compression $COMPRESSION \
   --compression_rate $COMPRESSION_RATE \
-  --compression_alpha $COMPRESSION_ALPHA
+  --compression_alpha $COMPRESSION_ALPHA \
+  --new_user_join $NEW_USER

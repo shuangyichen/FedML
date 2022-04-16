@@ -126,7 +126,7 @@ def add_args(parser):
     parser.add_argument('--compression_rate',type=float, help='compression_rate')
 
     parser.add_argument('--compression_alpha', type=float, help='compression_alpha')
-
+    parser.add_argument('--new_user_join', type=int, help='new user join')
 
     args = parser.parse_args()
     return args
