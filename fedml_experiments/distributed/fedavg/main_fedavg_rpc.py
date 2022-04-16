@@ -11,7 +11,7 @@ import psutil
 import setproctitle
 import torch
 import wandb
-
+from torchsummary import summary
 # add the FedML root directory to the python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "./../../../../")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "./../../../")))
@@ -32,7 +32,7 @@ from fedml_api.data_preprocessing.cifar10.data_loader import load_partition_data
 from fedml_api.data_preprocessing.cifar100.data_loader import load_partition_data_cifar100
 from fedml_api.data_preprocessing.cinic10.data_loader import load_partition_data_cinic10
 
-from fedml_api.model.cv.cnn import CNN_DropOut
+from fedml_api.model.cv.cnn import CNN_DropOut,CNN_Test
 from fedml_api.model.cv.resnet_gn import resnet18
 from fedml_api.model.cv.mobilenet import mobilenet
 from fedml_api.model.cv.resnet import resnet56
@@ -118,6 +118,16 @@ def add_args(parser):
 
     parser.add_argument('--ci', type=int, default=0,
                         help='CI')
+    parser.add_argument('--robust', type=int,
+                        help='ROBUST')
+
+    parser.add_argument('--compression', type=int,help='COMPRESSION')
+
+    parser.add_argument('--compression_rate',type=float, help='compression_rate')
+
+    parser.add_argument('--compression_alpha', type=float, help='compression_alpha')
+
+
     args = parser.parse_args()
     return args
 
@@ -259,14 +269,17 @@ def create_model(args, model_name, output_dim):
         model = resnet56(class_num=output_dim)
     elif model_name == "mobilenet":
         model = mobilenet(class_num=output_dim)
+    elif model_name == "cnn_test":
+        model = CNN_Test(False)
     # TODO
     elif model_name == 'mobilenet_v3':
         '''model_mode \in {LARGE: 5.15M, SMALL: 2.94M}'''
         model = MobileNetV3(model_mode='LARGE')
     elif model_name == 'efficientnet':
         model = EfficientNet()
-
-    return model
+    model_summary= summary(model, (1,28*28))
+    print("param num ",model_summary.item())
+    return model,  model_summary.item()
 
 
 if __name__ == "__main__":
@@ -284,7 +297,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     args = add_args(parser)
     logging.info(args)
-
+    if args.robust == 0:
+        robust = False
+    else:
+        robust = True
     # customize the process name
     str_process_name = "FedAvg (distributed):" + str(args.fl_worker_index)
     setproctitle.setproctitle(str_process_name)
@@ -327,8 +343,8 @@ if __name__ == "__main__":
     # create model.
     # Note if the model is DNN (e.g., ResNet), the training will be very slow.
     # In this case, please use our FedML distributed version (./fedml_experiments/distributed_fedavg)
-    model = create_model(args, model_name=args.model, output_dim=dataset[7])
+    model,param_num = create_model(args, model_name=args.model, output_dim=dataset[7])
 
     FedML_FedAvg_distributed(args.fl_worker_index, num_FL_workers, device, None,
-                             model, train_data_num, train_data_global, test_data_global,
-                             train_data_local_num_dict, train_data_local_dict, test_data_local_dict, args)
+                             model, param_num,train_data_num, train_data_global, test_data_global,
+                             train_data_local_num_dict, train_data_local_dict, test_data_local_dict, args,robust)

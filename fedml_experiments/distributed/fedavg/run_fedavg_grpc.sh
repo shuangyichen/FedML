@@ -30,6 +30,10 @@ EPOCH=2
 BATCH_SIZE=32
 LR=0.01
 CLIENT_OPTIMIZER=adam
+ROBUST=1
+COMPRESSION=0
+COMPRESSION_RATE=1.0
+COMPRESSION_ALPHA=0.1
 
 hostname > mpi_host_file
 
@@ -51,4 +55,8 @@ python3 ./main_fedavg_rpc.py \
   --ci 0 \
   --backend "GRPC" \
   --grpc_ipconfig_path "grpc_ipconfig.csv" \
-  --fl_worker_index $FL_WORKER_INDEX
+  --fl_worker_index $FL_WORKER_INDEX \
+  --robust $ROBUST \
+  --compression $COMPRESSION \
+  --compression_rate $COMPRESSION_RATE \
+  --compression_alpha $COMPRESSION_ALPHA
