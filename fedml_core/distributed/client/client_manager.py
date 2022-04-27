@@ -51,7 +51,7 @@ class ClientManager(Observer):
         handler_callback_func(msg_params)
 
     def send_message(self, message):
-        msg = Message()
+        msg = Message(message.get_type(),message.get_sender_id(),message.get_receiver_id())
         msg.add(Message.MSG_ARG_KEY_TYPE, message.get_type())
         msg.add(Message.MSG_ARG_KEY_SENDER, message.get_sender_id())
         msg.add(Message.MSG_ARG_KEY_RECEIVER, message.get_receiver_id())

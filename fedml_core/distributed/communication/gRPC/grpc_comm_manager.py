@@ -55,6 +55,7 @@ class GRPCCommManager(BaseCommunicationManager):
         payload = msg.to_json()
 
         receiver_id = msg.get_receiver_id()
+        #print(receiver_id)
         PORT_BASE = 50000#8888
         # lookup ip of receiver from self.ip_config table
         receiver_ip = self.ip_config[str(receiver_id)]
@@ -64,14 +65,14 @@ class GRPCCommManager(BaseCommunicationManager):
         stub = grpc_comm_manager_pb2_grpc.gRPCCommManagerStub(channel)
 
         request = grpc_comm_manager_pb2.CommRequest()
-        logging.info("sending message to {}".format(channel_url))
+        #logging.info("sending message to {}".format(channel_url))
 
         request.client_id = self.client_id
 
         request.message = payload
 
         stub.sendMessage(request)
-        logging.debug("sent successfully")
+        #logging.debug("sent successfully")
         channel.close()
 
     def add_observer(self, observer: Observer):

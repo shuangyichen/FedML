@@ -41,7 +41,7 @@ class ServerManager(Observer):
     def run(self):
         self.register_message_receive_handlers()
         self.com_manager.handle_receive_message()
-        print("done running")
+        #print("done running")
 
     def get_sender_id(self):
         return self.rank
