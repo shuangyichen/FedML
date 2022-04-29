@@ -100,8 +100,11 @@ class FedAVGServerManager(ServerManager):
         sender_id = msg_params.get(MyMessage.MSG_ARG_KEY_SENDER)
         if sender_id ==self.worker_num +1:
             self.update_system_info()
+            client_list = [i for i in range(1,self.size)]
+            random.shuffle(client_list)
             self.init_time = time.time()
-            for receiver_id in range(1, self.size):
+            #print(client_list)
+            for receiver_id in client_list:
                 self.send_message_round_done_to_client(receiver_id)
 
     def update_system_info(self):
@@ -113,6 +116,7 @@ class FedAVGServerManager(ServerManager):
         self.aggregator.worker_num += 1
         self.aggregator.reset_dict()
         self.pause_learning = False
+        self.if_check_client_status = True
         for idx in range(self.worker_num):
             self.flag_client_uploaded_dict[idx] = False
 
@@ -195,13 +199,16 @@ class FedAVGServerManager(ServerManager):
     def handle_message_round_live(self,msg_params):
         if not self.pause_learning:
             sender_id = msg_params.get(MyMessage.MSG_ARG_KEY_SENDER)
-            print("Receive liveness from client", sender_id)
+            #print("Receive liveness from client", sender_id)
+            #print(self.if_check_client_status)
             if self.if_check_client_status:
                 self.liveness_status[sender_id-1] = 1
                 self.flag_client_uploaded_dict[sender_id-1] = True
                 b_received, self.client_chosen = self.check_whether_partial_receive()
+                #print(b_received)
+                #print(self.client_chosen)
                 if b_received:
-                    self.if_check_client_status = False
+                    #self.if_check_client_status = False
                     #if self.worker_num==3:
                     #    self.client_chosen[1]='3'
                     print("Clients participated in current iterarion: ",self.client_chosen)
@@ -284,7 +291,10 @@ class FedAVGServerManager(ServerManager):
                 self.aggregate = np.zeros((self.params_count,1))
                 self.cur_round+=1
             #model_params = np.zeros((1,self.params_count))
-                for receiver_id in range(1, self.size):
+                client_list = [i for i in range(1,self.size)]
+                random.shuffle(client_list)
+                #print(client_list)
+                for receiver_id in client_list:
                     self.send_message_round_done_to_client(receiver_id)
 
 
