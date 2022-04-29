@@ -201,6 +201,7 @@ class FedAVGServerManager(ServerManager):
                 self.flag_client_uploaded_dict[sender_id-1] = True
                 b_received, self.client_chosen = self.check_whether_partial_receive()
                 if b_received:
+                    self.if_check_client_status = False
                     #if self.worker_num==3:
                     #    self.client_chosen[1]='3'
                     print("Clients participated in current iterarion: ",self.client_chosen)
