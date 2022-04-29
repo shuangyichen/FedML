@@ -195,7 +195,7 @@ class FedAVGServerManager(ServerManager):
     def handle_message_round_live(self,msg_params):
         if not self.pause_learning:
             sender_id = msg_params.get(MyMessage.MSG_ARG_KEY_SENDER)
-            #print("Receive liveness from client", sender_id)
+            print("Receive liveness from client", sender_id)
             if self.if_check_client_status:
                 self.liveness_status[sender_id-1] = 1
                 self.flag_client_uploaded_dict[sender_id-1] = True

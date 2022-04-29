@@ -90,7 +90,7 @@ class FedAVGClientManager(ClientManager):
         super().run()
 
     def handle_message_round_init(self,msg_params):
-        #print("send liveness")
+        print("send liveness")
         self.send_round_liveness_to_sender()
 
 
