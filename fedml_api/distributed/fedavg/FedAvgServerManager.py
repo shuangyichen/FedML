@@ -295,8 +295,10 @@ class FedAVGServerManager(ServerManager):
                 random.shuffle(client_list)
                 #print(client_list)
                 for receiver_id in client_list:
-                    self.send_message_round_done_to_client(receiver_id)
-
+                    try:
+                        self.send_message_round_done_to_client(receiver_id)
+                    except:
+                        pass
 
     def handle_message_receive_liveness_status_from_client(self,msg_params):
         if not self.pause_learning:
