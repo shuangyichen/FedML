@@ -15,7 +15,7 @@ set -x
 # infrastructure related
 FL_WORKER_INDEX=$1
 NEW_USER=$2
-CLIENT_NUM=2
+CLIENT_NUM=3
 CLIENT_NUM_PER_ROUND=2
 GPU_MAPPING="mapping_FedML_gRPC"
 
@@ -46,7 +46,7 @@ python3 ./main_fedavg_rpc.py \
   --dataset $DATASET \
   --data_dir $DATA_DIR \
   --partition_method $DISTRIBUTION  \
-  --client_num_in_total $CLIENT_NUM \
+  --client_num $CLIENT_NUM \
   --client_num_per_round $CLIENT_NUM_PER_ROUND \
   --comm_round $ROUND \
   --epochs $EPOCH \

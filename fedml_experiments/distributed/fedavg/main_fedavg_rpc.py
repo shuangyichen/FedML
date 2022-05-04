@@ -67,7 +67,8 @@ def add_args(parser):
 
     parser.add_argument('--client_num_in_total', type=int, default=1000, metavar='NN',
                         help='number of workers in a distributed cluster')
-
+    parser.add_argument('--client_num', type=int, metavar='NN',
+                        help='number of workers in a distributed cluster')
     parser.add_argument('--client_num_per_round', type=int, default=4, metavar='NN',
                         help='number of workers')
 
@@ -330,7 +331,7 @@ if __name__ == "__main__":
     torch.manual_seed(0)
     torch.cuda.manual_seed_all(0)
 
-    num_FL_workers = args.client_num_per_round + 1
+    num_FL_workers = args.client_num + 1
     # Please check "GPU_MAPPING.md" to see how to define the topology
     device = mapping_processes_to_gpu_device_from_yaml_file(args.fl_worker_index, num_FL_workers,
                                                             args.gpu_mapping_file, args.gpu_mapping_key)
